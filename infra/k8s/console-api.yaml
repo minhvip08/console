@@ -1,0 +1,137 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: console-api
+  labels:
+    app: console-api
+    tier: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: console-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: console-api
+        tier: api
+    spec:
+      containers:
+        - name: console-api
+          image: ${ECR_REPO}/console-api:${IMAGE_TAG}
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: console-db-credentials
+                  key: url
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: console-db-credentials
+                  key: username
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: console-db-credentials
+                  key: password
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: console-config
+                  key: redis-host
+            - name: REDIS_PORT
+              value: "6379"
+            - name: AWS_REGION
+              value: "ap-northeast-2"
+            - name: AWS_ENDPOINT
+              value: ""  # empty = use real AWS
+            - name: LOG_FORMAT
+              value: "json"
+            - name: CLOUDWATCH_METRICS_ENABLED
+              value: "true"
+            - name: ROLESTORE_MOCK
+              value: "false"
+            - name: JAVA_OPTS
+              value: "-XX:+UseZGC -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "1Gi"
+          # Kubernetes probes — use Spring Boot Actuator (docs/10 §Health checks)
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 30  # 10s + 30*5s = up to 2.5 min for startup
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: console-api
+  labels:
+    app: console-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: console-api
+
+---
+# HPA — scale based on CPU (docs/10 §HPA)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: console-api-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: console-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

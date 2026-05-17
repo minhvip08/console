@@ -1,0 +1,30 @@
+apply plugin: 'org.springframework.boot'
+
+dependencies {
+    implementation project(':common')
+
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // OffsetDateTime / LocalDateTime serialization cho ContextDataItem JSON
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+    // ─── Phase 8: Observability + AWS ───
+
+    // Micrometer metrics (auto-configured by actuator)
+    implementation 'io.micrometer:micrometer-registry-cloudwatch2'
+
+    // Structured JSON logging (Logback)
+    implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
+
+    // AWS SDK v2 — S3 (Claim Check) + CloudWatch (metrics push)
+    implementation platform('software.amazon.awssdk:bom:2.29.1')
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:cloudwatch'
+
+    runtimeOnly 'org.postgresql:postgresql'
+}
+

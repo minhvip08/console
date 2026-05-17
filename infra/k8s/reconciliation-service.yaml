@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reconciliation-service
+  labels:
+    app: reconciliation-service
+    tier: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: reconciliation-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: reconciliation-service
+        tier: worker
+    spec:
+      containers:
+        - name: reconciliation-service
+          image: ${ECR_REPO}/reconciliation-service:${IMAGE_TAG}
+          ports:
+            - containerPort: 8082
+              name: http
+          env:
+            - name: DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: console-db-credentials
+                  key: url
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: console-db-credentials
+                  key: username
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: console-db-credentials
+                  key: password
+            - name: KAFKA_BOOTSTRAP
+              valueFrom:
+                configMapKeyRef:
+                  name: console-config
+                  key: kafka-bootstrap
+            - name: LOG_FORMAT
+              value: "json"
+            - name: JAVA_OPTS
+              value: "-XX:+UseZGC -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "384Mi"
+            limits:
+              cpu: "1000m"
+              memory: "768Mi"
+          # Reconciliation service is a Kafka consumer — only health endpoint
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8082
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 30
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reconciliation-service
+  labels:
+    app: reconciliation-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8082
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: reconciliation-service
+
+---
+# HPA — lighter than console-api, scale on CPU
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: reconciliation-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: reconciliation-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

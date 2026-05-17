@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: reconciliation-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/console}
+    username: ${DB_USER:console}
+    password: ${DB_PASS:console_dev}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
+      hibernate.jdbc.time_zone: UTC
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: reconciliation-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # Idempotent consumer — at-least-once delivery, app handles dedup
+      enable-auto-commit: false
+    listener:
+      ack-mode: manual
+
+server:
+  port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+
+# ─── Reconciliation config ───
+reconciliation:
+  verification:
+    default-timeout-ms: ${VERIFY_TIMEOUT_MS:10000}
+    max-retries: ${VERIFY_MAX_RETRIES:3}

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logback config for Console API (docs/10 §CloudWatch Logs).
+  
+  Dev:  plain text console output (default)
+  Prod: structured JSON (set LOG_FORMAT=json)
+  
+  MDC fields automatically included:
+    - traceId:      distributed trace ID (from OTel or header)
+    - executionId:  scenario execution ID  
+    - actionExecId: action execution ID
+-->
+<configuration>
+
+    <property name="LOG_FORMAT" value="${LOG_FORMAT:-text}" />
+
+    <!-- ─── Text format (dev) ─── -->
+    <appender name="CONSOLE_TEXT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] [%X{traceId:-}] [%X{executionId:-}] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ─── JSON format (prod → CloudWatch Logs) ─── -->
+    <appender name="CONSOLE_JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>traceId</includeMdcKeyName>
+            <includeMdcKeyName>executionId</includeMdcKeyName>
+            <includeMdcKeyName>actionExecId</includeMdcKeyName>
+            <includeMdcKeyName>userId</includeMdcKeyName>
+            <fieldNames>
+                <timestamp>@timestamp</timestamp>
+                <version>[ignore]</version>
+            </fieldNames>
+            <customFields>{"service":"console-api"}</customFields>
+        </encoder>
+    </appender>
+
+    <!-- ─── Switch based on LOG_FORMAT env ─── -->
+    <root level="INFO">
+        <if condition='property("LOG_FORMAT").equals("json")'>
+            <then>
+                <appender-ref ref="CONSOLE_JSON" />
+            </then>
+            <else>
+                <appender-ref ref="CONSOLE_TEXT" />
+            </else>
+        </if>
+    </root>
+
+    <!-- App-level debug -->
+    <logger name="com.simi.console" level="${LOG_LEVEL:-DEBUG}" />
+    <logger name="com.simi.common" level="${LOG_LEVEL:-DEBUG}" />
+
+    <!-- Reduce noise -->
+    <logger name="org.springframework" level="INFO" />
+    <logger name="org.hibernate" level="WARN" />
+    <logger name="io.micrometer" level="INFO" />
+
+</configuration>

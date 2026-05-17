@@ -1,0 +1,18 @@
+apply plugin: 'org.springframework.boot'
+
+dependencies {
+    implementation project(':common')
+
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    // Jackson for JSON processing
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+    // HTTP client for 3rd party verification calls
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    runtimeOnly 'org.postgresql:postgresql'
+}

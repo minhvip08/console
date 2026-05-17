@@ -1,0 +1,6 @@
+rootProject.name = 'scenario-console'
+
+include 'common'
+include 'console-api'
+include 'backoffice-api'
+include 'reconciliation-service'

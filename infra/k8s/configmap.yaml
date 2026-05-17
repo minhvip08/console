@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: console-config
+data:
+  redis-host: "console-redis.elasticache.amazonaws.com"
+  kafka-bootstrap: "console-msk.kafka.ap-northeast-2.amazonaws.com:9092"
+  aws-region: "ap-northeast-2"
+  s3-artifacts-bucket: "console-artifacts"

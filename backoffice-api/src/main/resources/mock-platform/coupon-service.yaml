@@ -1,0 +1,68 @@
+openapi: 3.0.3
+info:
+  title: Coupon Service
+  version: "1.0"
+  description: Issue + delete coupons for campaigns. Used in Release Coupon Campaign scenario.
+servers:
+  - url: https://coupon.internal
+paths:
+  /campaigns/search:
+    get:
+      operationId: searchCampaigns
+      summary: Search active campaigns
+      parameters:
+        - name: query
+          in: query
+          schema: { type: string }
+          required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  campaigns:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        campaign_id: { type: string }
+                        name: { type: string }
+  /coupons:
+    post:
+      operationId: createCoupon
+      summary: Issue a coupon for a campaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [campaign_id, name, discount]
+              properties:
+                campaign_id: { type: string }
+                name: { type: string }
+                discount: { type: number }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  coupon_id: { type: string }
+  /coupons/{couponId}:
+    delete:
+      operationId: deleteCoupon
+      summary: Delete a coupon (compensation for createCoupon)
+      parameters:
+        - name: couponId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Deleted

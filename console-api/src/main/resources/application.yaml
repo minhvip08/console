@@ -1,0 +1,74 @@
+spring:
+  application:
+    name: console-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/console}
+    username: ${DB_USER:console}
+    password: ${DB_PASS:console_dev}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
+      hibernate.jdbc.time_zone: UTC
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+server:
+  port: 8080
+
+# ─── Actuator + Health Checks (docs/10 §Health checks) ───
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+      show-components: when_authorized
+      probes:
+        enabled: true      # K8s liveness/readiness via /actuator/health/liveness, /readiness
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+  # Micrometer → CloudWatch metrics push
+  cloudwatch:
+    metrics:
+      export:
+        enabled: ${CLOUDWATCH_METRICS_ENABLED:false}
+        namespace: Console/API
+        step: 60s
+
+# ─── RBAC — RoleStore integration (docs/09) ───
+rolestore:
+  mock: ${ROLESTORE_MOCK:true}                  # true=MockRoleStoreClient (dev), false=real HTTP client
+  cache-ttl-seconds: ${ROLESTORE_CACHE_TTL:300} # 5 min default
+  # url: ${ROLESTORE_URL:}                      # uncomment for real impl
+
+# ─── AWS (docs/10) ───
+# LocalStack: set aws.endpoint=http://localhost:4566
+# Real AWS:   leave aws.endpoint empty, use IAM instance role
+aws:
+  endpoint: ${AWS_ENDPOINT:http://localhost:4566}
+  region: ${AWS_REGION:ap-northeast-2}
+  access-key: ${AWS_ACCESS_KEY:test}
+  secret-key: ${AWS_SECRET_KEY:test}
+  s3:
+    artifacts-bucket: ${S3_ARTIFACTS_BUCKET:console-artifacts}
+    claim-check-threshold-bytes: ${S3_CLAIM_CHECK_THRESHOLD:102400}  # 100KB
+
+# ─── Logging — Structured JSON (docs/10 §CloudWatch Logs) ───
+logging:
+  level:
+    com.simi.console: ${LOG_LEVEL:DEBUG}
+    org.springframework: INFO
+    org.hibernate.SQL: ${SQL_LOG_LEVEL:WARN}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-}] [%X{executionId:-}] %-5level %logger{36} - %msg%n"

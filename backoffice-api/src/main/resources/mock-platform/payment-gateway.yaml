@@ -1,0 +1,45 @@
+openapi: 3.0.3
+info:
+  title: Payment Gateway
+  version: "1.0"
+  description: Charge + refund payments. Used in In-Game Purchase scenario.
+servers:
+  - url: https://payment.internal
+paths:
+  /payments/charge:
+    post:
+      operationId: chargePayment
+      summary: Charge a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, amount, currency]
+              properties:
+                user_id: { type: string }
+                amount: { type: number }
+                currency: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction_id: { type: string }
+                  status: { type: string }
+  /payments/{transactionId}/refund:
+    post:
+      operationId: refundPayment
+      summary: Refund a transaction (compensation for chargePayment)
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
