@@ -28,6 +28,9 @@ import java.util.Map;
  * <p>
  * Read path: {@link #readPreviousSteps} ưu tiên Redis; fallback PostgreSQL nếu Redis miss
  * và re-hydrate Redis (Cache-Aside — docs/04 §Cache-Aside Fallback).
+ * <p>
+ * Note: executionId is kept as String in all signatures since it's used as Redis key.
+ * DB lookups convert String → Long via {@link Long#parseLong(String)}.
  */
 @Component
 public class ContextStore {
@@ -55,7 +58,7 @@ public class ContextStore {
      */
     @Transactional
     public void appendItem(String executionId, ContextDataItem item) {
-        ScenarioExecution exec = executions.findById(executionId).orElseThrow(() ->
+        ScenarioExecution exec = executions.findById(parseLong(executionId)).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "execution not found: " + executionId));
 
         Map<String, ContextDataItem> snapshot = deserializeMap(exec.getContext());
@@ -93,7 +96,7 @@ public class ContextStore {
 
     /** Load snapshot từ scenario_execution.context (JSONB). */
     public ContextSnapshot loadSnapshotFromDb(String executionId) {
-        ScenarioExecution exec = executions.findById(executionId).orElseThrow(() ->
+        ScenarioExecution exec = executions.findById(parseLong(executionId)).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "execution not found: " + executionId));
         Map<String, ContextDataItem> map = deserializeMap(exec.getContext());
         return new ContextSnapshot(new ArrayList<>(map.values()));
@@ -113,6 +116,15 @@ public class ContextStore {
         } catch (IllegalArgumentException e) {
             // context JSONB không phải shape Map<String, ContextDataItem> — log + treat empty
             return new HashMap<>();
+        }
+    }
+
+    private static Long parseLong(String id) {
+        try {
+            return Long.parseLong(id);
+        } catch (NumberFormatException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Invalid execution ID format: " + id);
         }
     }
 }

@@ -67,21 +67,20 @@ public class SwaggerImporter {
 
         Service service = services.findByName(meta.name()).orElseGet(() -> {
             Service s = new Service();
-            s.setId(Ulid.prefixed(IdPrefix.SERVICE));
             s.setName(meta.name());
             s.setBaseUrl(meta.baseUrl());
             return services.save(s);
         });
 
-        List<String> createdActionIds = new ArrayList<>();
+        List<Long> createdActionIds = new ArrayList<>();
         if (api.getPaths() != null) {
             for (Map.Entry<String, PathItem> path : api.getPaths().entrySet()) {
                 PathItem item = path.getValue();
                 for (Map.Entry<PathItem.HttpMethod, Operation> op : item.readOperationsMap().entrySet()) {
                     ActionDefinition a = buildAction(service.getId(), path.getKey(), op.getKey().name(),
                             item, op.getValue());
-                    actions.save(a);
-                    createdActionIds.add(a.getId());
+                    ActionDefinition saved = actions.save(a);
+                    createdActionIds.add(saved.getId());
                 }
             }
         }
@@ -89,10 +88,9 @@ public class SwaggerImporter {
         return new ImportResult(service.getId(), service.getName(), createdActionIds);
     }
 
-    private ActionDefinition buildAction(String serviceId, String pathTemplate, String httpMethod,
+    private ActionDefinition buildAction(Long serviceId, String pathTemplate, String httpMethod,
                                          PathItem item, Operation op) {
         ActionDefinition a = new ActionDefinition();
-        a.setId(Ulid.prefixed(IdPrefix.ACTION_DEFINITION));
         a.setServiceId(serviceId);
         a.setEndpoint(pathTemplate);
         a.setHttpMethod(httpMethod);
@@ -116,7 +114,7 @@ public class SwaggerImporter {
         for (Parameter p : all) {
             ObjectNode node = json.createObjectNode();
             node.put("name", p.getName());
-            node.put("varId", Ulid.prefixed(IdPrefix.VARIABLE));
+            node.put("varId", Ulid.prefixed(IdPrefix.VARIABLE));  // VAR_ULID stays — not entity PK
             node.put("in", p.getIn());
             node.put("type", schemaType(p.getSchema()));
             node.put("required", Boolean.TRUE.equals(p.getRequired()));
@@ -134,7 +132,7 @@ public class SwaggerImporter {
                 for (Map.Entry<String, Schema> prop : bodySchema.getProperties().entrySet()) {
                     ObjectNode node = json.createObjectNode();
                     node.put("name", prop.getKey());
-                    node.put("varId", Ulid.prefixed(IdPrefix.VARIABLE));
+                    node.put("varId", Ulid.prefixed(IdPrefix.VARIABLE));  // VAR_ULID stays — not entity PK
                     node.put("in", "body");
                     node.put("type", schemaType(prop.getValue()));
                     node.put("required", required.contains(prop.getKey()));
@@ -164,7 +162,7 @@ public class SwaggerImporter {
         for (Map.Entry<String, Schema> prop : schema.getProperties().entrySet()) {
             ObjectNode node = json.createObjectNode();
             node.put("field", prop.getKey());
-            node.put("varId", Ulid.prefixed(IdPrefix.VARIABLE));
+            node.put("varId", Ulid.prefixed(IdPrefix.VARIABLE));  // VAR_ULID stays — not entity PK
             node.put("type", schemaType(prop.getValue()));
             arr.add(node);
         }
@@ -176,5 +174,5 @@ public class SwaggerImporter {
         return s.getType();
     }
 
-    public record ImportResult(String serviceId, String serviceName, List<String> actionIds) {}
+    public record ImportResult(Long serviceId, String serviceName, List<Long> actionIds) {}
 }

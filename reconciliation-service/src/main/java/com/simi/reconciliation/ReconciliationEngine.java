@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.simi.common.domain.ActionExecutionStatus;
 import com.simi.common.domain.ScenarioExecutionStatus;
 import com.simi.common.domain.entity.*;
-import com.simi.common.ulid.IdPrefix;
-import com.simi.common.ulid.Ulid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -58,7 +56,7 @@ public class ReconciliationEngine {
      * Process a TIMEOUT action_execution — verify with 3rd party and resolve.
      */
     @Transactional
-    public ReconcileResult reconcileTimeout(String actionExecutionId) {
+    public ReconcileResult reconcileTimeout(Long actionExecutionId) {
         ActionExecution actionExec = actionExecutions.findById(actionExecutionId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "action_execution not found: " + actionExecutionId));
@@ -241,7 +239,6 @@ public class ReconciliationEngine {
                                             String driftType, String resolution,
                                             JsonNode thirdPartyResponse, String notes) {
         ReconciliationEvent event = new ReconciliationEvent();
-        event.setId(Ulid.prefixed(IdPrefix.RECONCILIATION));
         event.setScenarioExecutionId(actionExec.getScenarioExecutionId());
         event.setActionExecutionId(actionExec.getId());
         event.setDriftType(driftType);

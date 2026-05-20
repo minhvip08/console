@@ -3,6 +3,8 @@ package com.simi.common.domain.entity;
 import com.simi.common.domain.Timestamped;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -16,7 +18,8 @@ import org.hibernate.type.SqlTypes;
 public class RetryPolicy extends Timestamped {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(nullable = false, unique = true)
     private String name;
@@ -37,8 +40,8 @@ public class RetryPolicy extends Timestamped {
     @Column(name = "retryable_status_codes", nullable = false, columnDefinition = "INT[]")
     private int[] retryableStatusCodes = new int[]{502, 503, 504};
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public int getMaxAttempts() { return maxAttempts; }

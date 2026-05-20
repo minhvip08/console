@@ -3,6 +3,8 @@ package com.simi.common.domain.entity;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -19,16 +21,17 @@ import java.time.OffsetDateTime;
 public class CompensationDeadLetter {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "saga_compensation_log_id", nullable = false)
-    private String sagaCompensationLogId;
+    private Long sagaCompensationLogId;
 
     @Column(name = "scenario_execution_id", nullable = false)
-    private String scenarioExecutionId;
+    private Long scenarioExecutionId;
 
     @Column(name = "action_definition_id", nullable = false)
-    private String actionDefinitionId;
+    private Long actionDefinitionId;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "context_snapshot", nullable = false, columnDefinition = "jsonb")
@@ -49,14 +52,14 @@ public class CompensationDeadLetter {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-    public String getSagaCompensationLogId() { return sagaCompensationLogId; }
-    public void setSagaCompensationLogId(String v) { this.sagaCompensationLogId = v; }
-    public String getScenarioExecutionId() { return scenarioExecutionId; }
-    public void setScenarioExecutionId(String v) { this.scenarioExecutionId = v; }
-    public String getActionDefinitionId() { return actionDefinitionId; }
-    public void setActionDefinitionId(String v) { this.actionDefinitionId = v; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getSagaCompensationLogId() { return sagaCompensationLogId; }
+    public void setSagaCompensationLogId(Long v) { this.sagaCompensationLogId = v; }
+    public Long getScenarioExecutionId() { return scenarioExecutionId; }
+    public void setScenarioExecutionId(Long v) { this.scenarioExecutionId = v; }
+    public Long getActionDefinitionId() { return actionDefinitionId; }
+    public void setActionDefinitionId(Long v) { this.actionDefinitionId = v; }
     public JsonNode getContextSnapshot() { return contextSnapshot; }
     public void setContextSnapshot(JsonNode v) { this.contextSnapshot = v; }
     public String getFailureReason() { return failureReason; }

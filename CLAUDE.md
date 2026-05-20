@@ -109,7 +109,8 @@ Trong demo này dùng `MockPlatformApiClient` với sample YAML embedded ở `ba
 
 ### action_execution (hot table)
 ```
-id, scenario_execution_id, trigger_execution_id, action_definition_id,
+id BIGSERIAL, scenario_execution_id BIGINT, trigger_execution_id BIGINT (nullable),
+action_definition_id BIGINT,
 status (PENDING|PROCESSING|COMPLETED|FAILED|TIMEOUT),
 idempotency_key VARCHAR NOT NULL UNIQUE,   -- SHA256(execId + actDefId + sorted_params)
 response_snapshot JSONB, s3_ref VARCHAR,
@@ -118,14 +119,15 @@ error_message, started_at, completed_at, ...
 
 ### trigger_execution (Tầng 3 idempotency)
 ```
-id, scenario_execution_id, step_trigger_id,
+id BIGSERIAL, scenario_execution_id BIGINT, step_trigger_id BIGINT,
 status (PENDING|RUNNING|COMPLETED|FAILED),
 UNIQUE (scenario_execution_id, step_trigger_id)
 ```
 
 ### saga_compensation_log
 ```
-id, scenario_execution_id, action_execution_id, action_definition_id,
+id BIGSERIAL, scenario_execution_id BIGINT, action_execution_id BIGINT (nullable),
+action_definition_id BIGINT,
 step_order INT,   -- denorm cho ORDER BY DESC hot path
 status (PENDING|COMPENSATING|COMPENSATED|COMPENSATION_FAILED),
 context_snapshot JSONB,   -- variable values tại thời điểm action chạy
@@ -134,12 +136,12 @@ context_snapshot JSONB,   -- variable values tại thời điểm action chạy
 
 ### Redis keys (toàn bộ namespace)
 ```
-exec:{execId}:{sourceType}:{srcId}:{varId}     ← C, String ContextDataItem JSON
+exec:{execId}:{sourceType}:{srcId}:{varId}     ← C, String ContextDataItem JSON  (execId = numeric Long)
 index:step:{execId}                            ← A, ZSET (score=stepOrder)
 group:{execId}:var:{varId}                     ← B, Set of C keys
 dedup:{requestId}             EX 60            ← Tầng 2
 result:{requestId}            EX 300           ← cached response
-sc:user:{userId}:exec         EX 300           ← RBAC cache
+sc:user:{userId}:exec         EX 300           ← RBAC cache (members = String.valueOf(Long id))
 ```
 
 Xem chi tiết: 04-context-redis.md, 08-database.md, flow.md §12.
@@ -184,8 +186,8 @@ Inner layer KHÔNG import outer layer. Use case nhận `port` interface, infrast
 ### Naming
 - Tables/columns: `snake_case`, plural-ish theo Spring Data convention.
 - Java class: `PascalCase`, methods `camelCase`.
-- ULID prefix: `scen_`, `step_`, `actdef_`, `actexec_`, `exec_`, `trigger_`, `actexec_`, `req_`, `widget_`, `VAR_`.
-- Variable ID: **VAR_{26-char ULID}** — không dùng alias string ở DB hay API.
+- Entity PK: **BIGSERIAL auto-increment** — DB tự generate, không set thủ công trong code.
+- Variable ID: **VAR_{26-char ULID}** — dùng trong JSONB (parameters/output/ui), không phải entity PK.
 
 ### Error handling
 - 4xx/5xx từ 3rd party → `action_execution.status = FAILED` + Saga.
@@ -216,7 +218,8 @@ Xem [plan.md](plan.md) — phased roadmap, mỗi phase có acceptance criteria.
 ## What NOT to Do
 
 - ❌ Đừng tạo lại tầng `block_definition` — đã loại bỏ có chủ đích (xem 02).
-- ❌ Đừng dùng alias string ở DB hoặc API — chỉ dùng `VAR_ULID`.
+- ❌ Đừng dùng alias string ở DB hoặc API — chỉ dùng `VAR_ULID` trong JSONB, không phải entity PK.
+- ❌ Đừng set entity ID thủ công — entity PK là BIGSERIAL, để DB tự generate.
 - ❌ Đừng skip layer Tầng 4 idempotency dù đã có Tầng 3 — Tầng 4 chặn cross-session retry.
 - ❌ Đừng gọi 3rd party trực tiếp từ Controller — phải qua Service Adapter Layer.
 - ❌ Đừng commit JSONB cho `step_trigger` config — đã normalize sang table.

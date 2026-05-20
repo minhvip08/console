@@ -17,7 +17,7 @@ import java.util.Set;
  * Permission check with Redis caching (docs/09 §Caching Strategy).
  * <pre>
  * Redis key: sc:user:{userId}:exec
- * Value:     Set of allowed scenario_definition IDs
+ * Value:     Set of allowed scenario_definition IDs (stored as strings)
  * TTL:       configurable (default 5 min)
  *
  * Check flow:
@@ -82,9 +82,9 @@ public class PermissionService {
      * Check if user has permission for a specific scenario.
      * @throws ResponseStatusException 403 if denied
      */
-    public void checkScenarioPermission(String userId, String scenarioDefinitionId) {
+    public void checkScenarioPermission(String userId, Long scenarioDefinitionId) {
         Set<String> allowed = getAllowedScenarioIds(userId);
-        if (!allowed.contains(scenarioDefinitionId)) {
+        if (!allowed.contains(String.valueOf(scenarioDefinitionId))) {
             log.warn("RBAC DENIED: user={} → scenario={}", userId, scenarioDefinitionId);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "User does not have permission for scenario: " + scenarioDefinitionId);
@@ -95,7 +95,7 @@ public class PermissionService {
      * Check execution ownership — user must have started the execution OR have scenario permission.
      * @throws ResponseStatusException 403 if denied
      */
-    public void checkExecutionPermission(String userId, String executionId) {
+    public void checkExecutionPermission(String userId, Long executionId) {
         ScenarioExecution exec = executions.findById(executionId).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "execution not found: " + executionId));
 

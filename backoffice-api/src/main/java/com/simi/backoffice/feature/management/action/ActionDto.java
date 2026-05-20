@@ -11,14 +11,14 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public record ActionDto(
-        String id,
+        Long id,
         @NotBlank String name,
-        @NotBlank String serviceId,
+        @NotNull Long serviceId,
         @NotBlank String endpoint,
         @NotBlank String httpMethod,
         String adapterType,        // default 'http'
         Integer timeoutMs,         // default 10000
-        String retryPolicyId,
+        Long retryPolicyId,
         @NotNull JsonNode parameters,
         @NotNull JsonNode output,
         Compensation compensation,  // nullable
@@ -26,7 +26,7 @@ public record ActionDto(
         AsyncConfig asyncConfig     // nullable, chỉ khi adapterType=async
 ) {
     public record Compensation(
-            String compensationActionDefinitionId,
+            Long compensationActionDefinitionId,
             String triggerType,         // auto|manual|none
             List<String> requiredVarIds
     ) {

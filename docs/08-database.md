@@ -42,7 +42,7 @@ action_execution ──▶ reconciliation_event
 
 ```sql
 CREATE TABLE service (
-    id         VARCHAR PRIMARY KEY,
+    id         BIGSERIAL PRIMARY KEY,
     name       VARCHAR NOT NULL UNIQUE,
     base_url   VARCHAR NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -54,7 +54,7 @@ CREATE TABLE service (
 
 ```sql
 CREATE TABLE retry_policy (
-    id                     VARCHAR PRIMARY KEY,
+    id                     BIGSERIAL PRIMARY KEY,
     name                   VARCHAR NOT NULL UNIQUE,
     max_attempts           INT NOT NULL DEFAULT 3,
     backoff_type           VARCHAR NOT NULL CHECK (backoff_type IN ('exponential','linear','fixed')),
@@ -69,7 +69,7 @@ CREATE TABLE retry_policy (
 
 ```sql
 CREATE TABLE scenario_definition (
-    id          VARCHAR PRIMARY KEY,
+    id          BIGSERIAL PRIMARY KEY,
     name        VARCHAR NOT NULL,
     description TEXT,
     created_by  VARCHAR,
@@ -86,8 +86,8 @@ Trigger config (trigger nào chạy action nào, theo thứ tự nào) **không*
 
 ```sql
 CREATE TABLE step_definition (
-    id                     VARCHAR PRIMARY KEY,
-    scenario_definition_id VARCHAR NOT NULL REFERENCES scenario_definition(id),
+    id                     BIGSERIAL PRIMARY KEY,
+    scenario_definition_id BIGINT NOT NULL REFERENCES scenario_definition(id),
     name                   VARCHAR NOT NULL,
     step_order             INT NOT NULL,
     ui                     JSONB NOT NULL DEFAULT '{}',   -- widget layout với outputVarId
@@ -105,14 +105,14 @@ CREATE TABLE step_definition (
 
 ```sql
 CREATE TABLE action_definition (
-    id              VARCHAR PRIMARY KEY,
+    id              BIGSERIAL PRIMARY KEY,
     name            VARCHAR NOT NULL,
-    service_id      VARCHAR NOT NULL REFERENCES service(id),
+    service_id      BIGINT NOT NULL REFERENCES service(id),
     endpoint        VARCHAR NOT NULL,
     http_method     VARCHAR NOT NULL CHECK (http_method IN ('GET','POST','PUT','PATCH','DELETE')),
     adapter_type    VARCHAR NOT NULL CHECK (adapter_type IN ('http','async','mock')) DEFAULT 'http',
     timeout_ms      INT NOT NULL DEFAULT 10000,
-    retry_policy_id VARCHAR REFERENCES retry_policy(id),
+    retry_policy_id BIGINT REFERENCES retry_policy(id),
     parameters      JSONB NOT NULL DEFAULT '[]',
     output          JSONB NOT NULL DEFAULT '[]',
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -126,8 +126,8 @@ Tách ra khỏi `step_definition.schema` JSONB để `trigger_execution` có FK 
 
 ```sql
 CREATE TABLE step_trigger (
-    id                 VARCHAR PRIMARY KEY,
-    step_definition_id VARCHAR NOT NULL REFERENCES step_definition(id),
+    id                 BIGSERIAL PRIMARY KEY,
+    step_definition_id BIGINT NOT NULL REFERENCES step_definition(id),
     name               VARCHAR NOT NULL,
     trigger_type       VARCHAR NOT NULL CHECK (trigger_type IN ('button_click','on_load','on_change')),
     widget_id          VARCHAR,  -- null khi trigger_type = 'on_load'
@@ -142,9 +142,9 @@ Junction table N:N có order giữa trigger và action — thay cho JSONB array 
 
 ```sql
 CREATE TABLE step_trigger_action (
-    id                   VARCHAR PRIMARY KEY,
-    step_trigger_id      VARCHAR NOT NULL REFERENCES step_trigger(id),
-    action_definition_id VARCHAR NOT NULL REFERENCES action_definition(id),
+    id                   BIGSERIAL PRIMARY KEY,
+    step_trigger_id      BIGINT NOT NULL REFERENCES step_trigger(id),
+    action_definition_id BIGINT NOT NULL REFERENCES action_definition(id),
     action_order         INT NOT NULL,
     created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (step_trigger_id, action_order)
@@ -158,9 +158,9 @@ CREATE TABLE step_trigger_action (
 
 ```sql
 CREATE TABLE action_compensation (
-    id                                VARCHAR PRIMARY KEY,
-    action_definition_id              VARCHAR NOT NULL UNIQUE REFERENCES action_definition(id),
-    compensation_action_definition_id VARCHAR NOT NULL REFERENCES action_definition(id),
+    id                                BIGSERIAL PRIMARY KEY,
+    action_definition_id              BIGINT NOT NULL UNIQUE REFERENCES action_definition(id),
+    compensation_action_definition_id BIGINT NOT NULL REFERENCES action_definition(id),
     trigger_type                      VARCHAR NOT NULL CHECK (trigger_type IN ('auto','manual','none')),
     required_var_ids                  TEXT[] NOT NULL DEFAULT '{}',  -- VAR_ULID[] cần cho compensation
     created_at                        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -174,8 +174,8 @@ Config cho Reconciliation Service.
 
 ```sql
 CREATE TABLE action_verification (
-    id                   VARCHAR PRIMARY KEY,
-    action_definition_id VARCHAR NOT NULL UNIQUE REFERENCES action_definition(id),
+    id                   BIGSERIAL PRIMARY KEY,
+    action_definition_id BIGINT NOT NULL UNIQUE REFERENCES action_definition(id),
     endpoint             VARCHAR NOT NULL,
     http_method          VARCHAR NOT NULL CHECK (http_method IN ('GET','POST')),
     query_params         JSONB,
@@ -193,8 +193,8 @@ Chỉ tồn tại khi `adapter_type = 'async'`.
 
 ```sql
 CREATE TABLE async_action_config (
-    id                       VARCHAR PRIMARY KEY,
-    action_definition_id     VARCHAR NOT NULL UNIQUE REFERENCES action_definition(id),
+    id                       BIGSERIAL PRIMARY KEY,
+    action_definition_id     BIGINT NOT NULL UNIQUE REFERENCES action_definition(id),
     publish_to               VARCHAR NOT NULL,
     status_check_endpoint    VARCHAR,
     status_check_interval_ms INT,
@@ -214,8 +214,8 @@ CREATE TABLE async_action_config (
 
 ```sql
 CREATE TABLE scenario_execution (
-    id                     VARCHAR PRIMARY KEY,
-    scenario_definition_id VARCHAR NOT NULL REFERENCES scenario_definition(id),
+    id                     BIGSERIAL PRIMARY KEY,
+    scenario_definition_id BIGINT NOT NULL REFERENCES scenario_definition(id),
     status                 VARCHAR NOT NULL CHECK (status IN (
         'PENDING','EXECUTING','COMPLETED','FAILED',
         'COMPENSATING','COMPENSATED','COMPENSATION_FAILED'
@@ -233,9 +233,9 @@ CREATE TABLE scenario_execution (
 
 ```sql
 CREATE TABLE trigger_execution (
-    id                    VARCHAR PRIMARY KEY,
-    scenario_execution_id VARCHAR NOT NULL REFERENCES scenario_execution(id),
-    step_trigger_id       VARCHAR NOT NULL REFERENCES step_trigger(id),
+    id                    BIGSERIAL PRIMARY KEY,
+    scenario_execution_id BIGINT NOT NULL REFERENCES scenario_execution(id),
+    step_trigger_id       BIGINT NOT NULL REFERENCES step_trigger(id),
     status                VARCHAR NOT NULL CHECK (status IN ('PENDING','RUNNING','COMPLETED','FAILED')) DEFAULT 'PENDING',
     request_id            VARCHAR,
     started_at            TIMESTAMPTZ,
@@ -249,13 +249,14 @@ CREATE TABLE trigger_execution (
 ### action_execution
 
 `idempotency_key UNIQUE` — Tầng 4 idempotency. `s3_ref` chỉ set khi response payload > ~100KB.
+`trigger_execution_id` nullable — compensation action không thuộc trigger cụ thể nào.
 
 ```sql
 CREATE TABLE action_execution (
-    id                    VARCHAR PRIMARY KEY,
-    scenario_execution_id VARCHAR NOT NULL REFERENCES scenario_execution(id),
-    trigger_execution_id  VARCHAR NOT NULL REFERENCES trigger_execution(id),
-    action_definition_id  VARCHAR NOT NULL REFERENCES action_definition(id),
+    id                    BIGSERIAL PRIMARY KEY,
+    scenario_execution_id BIGINT NOT NULL REFERENCES scenario_execution(id),
+    trigger_execution_id  BIGINT REFERENCES trigger_execution(id),
+    action_definition_id  BIGINT NOT NULL REFERENCES action_definition(id),
     status                VARCHAR NOT NULL CHECK (status IN (
         'PENDING',      -- chưa bắt đầu
         'PROCESSING',   -- request đang được gửi (window ngắn)
@@ -286,15 +287,15 @@ CREATE TABLE action_execution (
 
 ```sql
 CREATE TABLE saga_compensation_log (
-    id                               VARCHAR PRIMARY KEY,
-    scenario_execution_id            VARCHAR NOT NULL REFERENCES scenario_execution(id),
-    action_execution_id              VARCHAR REFERENCES action_execution(id),
-    action_definition_id             VARCHAR NOT NULL REFERENCES action_definition(id),
+    id                               BIGSERIAL PRIMARY KEY,
+    scenario_execution_id            BIGINT NOT NULL REFERENCES scenario_execution(id),
+    action_execution_id              BIGINT REFERENCES action_execution(id),
+    action_definition_id             BIGINT NOT NULL REFERENCES action_definition(id),
     step_order                       INT NOT NULL,
     status                           VARCHAR NOT NULL CHECK (status IN (
         'PENDING','COMPENSATING','COMPENSATED','COMPENSATION_FAILED'
     )) DEFAULT 'PENDING',
-    compensation_action_execution_id VARCHAR REFERENCES action_execution(id),
+    compensation_action_execution_id BIGINT REFERENCES action_execution(id),
     context_snapshot                 JSONB NOT NULL,
     created_at                       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at                       TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -305,10 +306,10 @@ CREATE TABLE saga_compensation_log (
 
 ```sql
 CREATE TABLE compensation_dead_letter (
-    id                       VARCHAR PRIMARY KEY,
-    saga_compensation_log_id VARCHAR NOT NULL REFERENCES saga_compensation_log(id),
-    scenario_execution_id    VARCHAR NOT NULL REFERENCES scenario_execution(id),
-    action_definition_id     VARCHAR NOT NULL REFERENCES action_definition(id),
+    id                       BIGSERIAL PRIMARY KEY,
+    saga_compensation_log_id BIGINT NOT NULL REFERENCES saga_compensation_log(id),
+    scenario_execution_id    BIGINT NOT NULL REFERENCES scenario_execution(id),
+    action_definition_id     BIGINT NOT NULL REFERENCES action_definition(id),
     context_snapshot         JSONB NOT NULL,
     failure_reason           TEXT,
     retry_count              INT NOT NULL DEFAULT 0,
@@ -326,9 +327,9 @@ CREATE TABLE compensation_dead_letter (
 
 ```sql
 CREATE TABLE reconciliation_event (
-    id                    VARCHAR PRIMARY KEY,
-    scenario_execution_id VARCHAR NOT NULL REFERENCES scenario_execution(id),
-    action_execution_id   VARCHAR NOT NULL REFERENCES action_execution(id),
+    id                    BIGSERIAL PRIMARY KEY,
+    scenario_execution_id BIGINT NOT NULL REFERENCES scenario_execution(id),
+    action_execution_id   BIGINT NOT NULL REFERENCES action_execution(id),
     drift_type            VARCHAR NOT NULL CHECK (drift_type IN (
         'GHOST_TRANSACTION','ORPHAN_RECORD','LOST_RESPONSE','STALE_COMPENSATION'
     )),

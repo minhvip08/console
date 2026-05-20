@@ -2,6 +2,8 @@ package com.simi.common.domain.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
@@ -16,13 +18,14 @@ import java.time.OffsetDateTime;
 public class StepTriggerAction {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "step_trigger_id", nullable = false)
-    private String stepTriggerId;
+    private Long stepTriggerId;
 
     @Column(name = "action_definition_id", nullable = false)
-    private String actionDefinitionId;
+    private Long actionDefinitionId;
 
     @Column(name = "action_order", nullable = false)
     private int actionOrder;
@@ -30,12 +33,12 @@ public class StepTriggerAction {
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-    public String getStepTriggerId() { return stepTriggerId; }
-    public void setStepTriggerId(String v) { this.stepTriggerId = v; }
-    public String getActionDefinitionId() { return actionDefinitionId; }
-    public void setActionDefinitionId(String v) { this.actionDefinitionId = v; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getStepTriggerId() { return stepTriggerId; }
+    public void setStepTriggerId(Long v) { this.stepTriggerId = v; }
+    public Long getActionDefinitionId() { return actionDefinitionId; }
+    public void setActionDefinitionId(Long v) { this.actionDefinitionId = v; }
     public int getActionOrder() { return actionOrder; }
     public void setActionOrder(int v) { this.actionOrder = v; }
     public OffsetDateTime getCreatedAt() { return createdAt; }

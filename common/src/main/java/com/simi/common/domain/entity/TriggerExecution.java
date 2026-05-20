@@ -12,13 +12,14 @@ import java.time.OffsetDateTime;
 public class TriggerExecution extends Timestamped {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "scenario_execution_id", nullable = false)
-    private String scenarioExecutionId;
+    private Long scenarioExecutionId;
 
     @Column(name = "step_trigger_id", nullable = false)
-    private String stepTriggerId;
+    private Long stepTriggerId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -33,12 +34,12 @@ public class TriggerExecution extends Timestamped {
     @Column(name = "completed_at")
     private OffsetDateTime completedAt;
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-    public String getScenarioExecutionId() { return scenarioExecutionId; }
-    public void setScenarioExecutionId(String v) { this.scenarioExecutionId = v; }
-    public String getStepTriggerId() { return stepTriggerId; }
-    public void setStepTriggerId(String v) { this.stepTriggerId = v; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getScenarioExecutionId() { return scenarioExecutionId; }
+    public void setScenarioExecutionId(Long v) { this.scenarioExecutionId = v; }
+    public Long getStepTriggerId() { return stepTriggerId; }
+    public void setStepTriggerId(Long v) { this.stepTriggerId = v; }
     public TriggerExecutionStatus getStatus() { return status; }
     public void setStatus(TriggerExecutionStatus s) { this.status = s; }
     public String getRequestId() { return requestId; }

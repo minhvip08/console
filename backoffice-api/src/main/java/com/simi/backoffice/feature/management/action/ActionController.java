@@ -5,8 +5,6 @@ import com.simi.common.domain.entity.ActionCompensation;
 import com.simi.common.domain.entity.ActionDefinition;
 import com.simi.common.domain.entity.ActionVerification;
 import com.simi.common.domain.entity.AsyncActionConfig;
-import com.simi.common.ulid.IdPrefix;
-import com.simi.common.ulid.Ulid;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +36,7 @@ class ActionController {
     }
 
     @GetMapping
-    public List<ActionDto> list(@RequestParam(required = false) String serviceId) {
+    public List<ActionDto> list(@RequestParam(required = false) Long serviceId) {
         List<ActionDefinition> rows = serviceId == null
                 ? actions.findAll()
                 : actions.findByServiceId(serviceId);
@@ -46,7 +44,7 @@ class ActionController {
     }
 
     @GetMapping("/{id}")
-    public ActionDto get(@PathVariable String id) {
+    public ActionDto get(@PathVariable Long id) {
         return toDto(load(id));
     }
 
@@ -57,18 +55,16 @@ class ActionController {
         if (!services.existsById(in.serviceId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "service not found: " + in.serviceId());
         }
-        String id = Ulid.prefixed(IdPrefix.ACTION_DEFINITION);
         ActionDefinition a = new ActionDefinition();
-        a.setId(id);
         applyTo(a, in);
-        actions.save(a);
-        upsertNested(id, in);
-        return toDto(a);
+        ActionDefinition saved = actions.save(a);
+        upsertNested(saved.getId(), in);
+        return toDto(saved);
     }
 
     @PutMapping("/{id}")
     @Transactional
-    public ActionDto update(@PathVariable String id, @Valid @RequestBody ActionDto in) {
+    public ActionDto update(@PathVariable Long id, @Valid @RequestBody ActionDto in) {
         ActionDefinition a = load(id);
         applyTo(a, in);
         actions.save(a);
@@ -78,7 +74,7 @@ class ActionController {
 
     @DeleteMapping("/{id}")
     @Transactional
-    public ResponseEntity<Void> delete(@PathVariable String id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (!actions.existsById(id)) return ResponseEntity.notFound().build();
         compensations.deleteByActionDefinitionId(id);
         verifications.deleteByActionDefinitionId(id);
@@ -101,12 +97,11 @@ class ActionController {
         a.setOutput(in.output());
     }
 
-    private void upsertNested(String actionId, ActionDto in) {
+    private void upsertNested(Long actionId, ActionDto in) {
         // Compensation
         compensations.deleteByActionDefinitionId(actionId);
         if (in.compensation() != null) {
             ActionCompensation c = new ActionCompensation();
-            c.setId(Ulid.prefixed("comp"));
             c.setActionDefinitionId(actionId);
             c.setCompensationActionDefinitionId(in.compensation().compensationActionDefinitionId());
             c.setTriggerType(in.compensation().triggerType());
@@ -120,7 +115,6 @@ class ActionController {
         verifications.deleteByActionDefinitionId(actionId);
         if (in.verification() != null) {
             ActionVerification v = new ActionVerification();
-            v.setId(Ulid.prefixed("ver"));
             v.setActionDefinitionId(actionId);
             v.setEndpoint(in.verification().endpoint());
             v.setHttpMethod(in.verification().httpMethod());
@@ -135,7 +129,6 @@ class ActionController {
         asyncConfigs.deleteByActionDefinitionId(actionId);
         if ("async".equals(in.adapterType()) && in.asyncConfig() != null) {
             AsyncActionConfig ac = new AsyncActionConfig();
-            ac.setId(Ulid.prefixed("async"));
             ac.setActionDefinitionId(actionId);
             ac.setPublishTo(in.asyncConfig().publishTo());
             ac.setStatusCheckEndpoint(in.asyncConfig().statusCheckEndpoint());
@@ -153,7 +146,7 @@ class ActionController {
         return ActionDto.from(a, c, v, ac);
     }
 
-    private ActionDefinition load(String id) {
+    private ActionDefinition load(Long id) {
         return actions.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "action not found: " + id));
     }

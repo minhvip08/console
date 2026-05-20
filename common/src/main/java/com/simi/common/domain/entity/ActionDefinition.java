@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.simi.common.domain.Timestamped;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -20,13 +22,14 @@ import org.hibernate.type.SqlTypes;
 public class ActionDefinition extends Timestamped {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(nullable = false)
     private String name;
 
     @Column(name = "service_id", nullable = false)
-    private String serviceId;
+    private Long serviceId;
 
     @Column(nullable = false)
     private String endpoint;
@@ -41,7 +44,7 @@ public class ActionDefinition extends Timestamped {
     private int timeoutMs = 10000;
 
     @Column(name = "retry_policy_id")
-    private String retryPolicyId;
+    private Long retryPolicyId;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
@@ -51,12 +54,12 @@ public class ActionDefinition extends Timestamped {
     @Column(nullable = false, columnDefinition = "jsonb")
     private JsonNode output;
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-    public String getServiceId() { return serviceId; }
-    public void setServiceId(String v) { this.serviceId = v; }
+    public Long getServiceId() { return serviceId; }
+    public void setServiceId(Long v) { this.serviceId = v; }
     public String getEndpoint() { return endpoint; }
     public void setEndpoint(String v) { this.endpoint = v; }
     public String getHttpMethod() { return httpMethod; }
@@ -65,8 +68,8 @@ public class ActionDefinition extends Timestamped {
     public void setAdapterType(String v) { this.adapterType = v; }
     public int getTimeoutMs() { return timeoutMs; }
     public void setTimeoutMs(int v) { this.timeoutMs = v; }
-    public String getRetryPolicyId() { return retryPolicyId; }
-    public void setRetryPolicyId(String v) { this.retryPolicyId = v; }
+    public Long getRetryPolicyId() { return retryPolicyId; }
+    public void setRetryPolicyId(Long v) { this.retryPolicyId = v; }
     public JsonNode getParameters() { return parameters; }
     public void setParameters(JsonNode v) { this.parameters = v; }
     public JsonNode getOutput() { return output; }

@@ -2,6 +2,8 @@ package com.simi.common.domain.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
@@ -15,10 +17,11 @@ import java.time.OffsetDateTime;
 public class AsyncActionConfig {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "action_definition_id", nullable = false, unique = true)
-    private String actionDefinitionId;
+    private Long actionDefinitionId;
 
     @Column(name = "publish_to", nullable = false)
     private String publishTo;
@@ -38,10 +41,10 @@ public class AsyncActionConfig {
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-    public String getActionDefinitionId() { return actionDefinitionId; }
-    public void setActionDefinitionId(String v) { this.actionDefinitionId = v; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getActionDefinitionId() { return actionDefinitionId; }
+    public void setActionDefinitionId(Long v) { this.actionDefinitionId = v; }
     public String getPublishTo() { return publishTo; }
     public void setPublishTo(String v) { this.publishTo = v; }
     public String getStatusCheckEndpoint() { return statusCheckEndpoint; }

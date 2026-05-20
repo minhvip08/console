@@ -10,7 +10,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 public record ExecutionDto(
-        String executionId,
+        Long executionId,
         ScenarioInfo scenario,
         ScenarioExecutionStatus status,
         Integer currentStepOrder,
@@ -18,13 +18,13 @@ public record ExecutionDto(
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {
-    public record ScenarioInfo(String id, String name, String description) {
+    public record ScenarioInfo(Long id, String name, String description) {
         public static ScenarioInfo from(ScenarioDefinition d) {
             return new ScenarioInfo(d.getId(), d.getName(), d.getDescription());
         }
     }
 
-    public record StepInfo(String id, String name, int stepOrder, JsonNode ui) {
+    public record StepInfo(Long id, String name, int stepOrder, JsonNode ui) {
         public static StepInfo from(StepDefinition s) {
             return new StepInfo(s.getId(), s.getName(), s.getStepOrder(), s.getUi());
         }

@@ -7,8 +7,6 @@ import com.simi.common.domain.SagaCompensationStatus;
 import com.simi.common.domain.context.ContextDataItem;
 import com.simi.common.domain.entity.*;
 import com.simi.common.idempotency.IdempotencyKey;
-import com.simi.common.ulid.IdPrefix;
-import com.simi.common.ulid.Ulid;
 import com.simi.console.feature.adapter.AdapterRegistry;
 import com.simi.console.feature.adapter.AdapterRequest;
 import com.simi.console.feature.adapter.AdapterResult;
@@ -92,7 +90,6 @@ public class ActionExecutor {
 
         // 3. Insert PROCESSING row. UNIQUE(idempotency_key) → nếu 2 thread race, 1 thua → conflict.
         ActionExecution row = new ActionExecution();
-        row.setId(Ulid.prefixed(IdPrefix.ACTION_EXECUTION));
         row.setScenarioExecutionId(in.executionId());
         row.setTriggerExecutionId(in.triggerExecutionId());
         row.setActionDefinitionId(actionDef.getId());
@@ -141,6 +138,9 @@ public class ActionExecutor {
         JsonNode outputs = def.getOutput();
         if (outputs == null || !outputs.isArray()) return;
 
+        String executionIdStr = String.valueOf(in.executionId());
+        String execIdStr = String.valueOf(exec.getId());
+
         for (JsonNode out : outputs) {
             String field = out.get("field").asText();
             String varId = out.get("varId").asText();
@@ -149,16 +149,16 @@ public class ActionExecutor {
             Object value = json.convertValue(body.get(field), Object.class);
             ContextDataItem.Origin origin = new ContextDataItem.Origin(
                     ContextDataItem.SourceType.ACTION_OUTPUT,
-                    in.scenarioDefinitionId(),
+                    String.valueOf(in.scenarioDefinitionId()),
                     in.stepDefinitionId(),
                     in.stepOrder(),
-                    exec.getId(),
+                    execIdStr,
                     def.getName(),
                     field
             );
             ContextDataItem item = new ContextDataItem(
-                    ContextDataItem.buildKey(in.executionId(),
-                            ContextDataItem.SourceType.ACTION_OUTPUT, exec.getId(), varId),
+                    ContextDataItem.buildKey(executionIdStr,
+                            ContextDataItem.SourceType.ACTION_OUTPUT, execIdStr, varId),
                     varId,
                     value,
                     valueType(out),
@@ -166,15 +166,15 @@ public class ActionExecutor {
                     origin,
                     OffsetDateTime.now()
             );
-            contextStore.appendItem(in.executionId(), item);
+            contextStore.appendItem(executionIdStr, item);
         }
     }
 
     private void writeSagaLog(ExecuteInput in, ActionDefinition def, ActionExecution exec, ActionCompensation comp) {
         // Snapshot context tại thời điểm action chạy — Saga Manager dùng đúng data này.
-        List<ContextDataItem> snapshot = contextStore.readPreviousSteps(in.executionId(), in.stepOrder());
+        String executionIdStr = String.valueOf(in.executionId());
+        List<ContextDataItem> snapshot = contextStore.readPreviousSteps(executionIdStr, in.stepOrder());
         SagaCompensationLog log = new SagaCompensationLog();
-        log.setId(Ulid.prefixed(IdPrefix.SAGA_LOG));
         log.setScenarioExecutionId(in.executionId());
         log.setActionExecutionId(exec.getId());
         log.setActionDefinitionId(def.getId());
@@ -190,12 +190,12 @@ public class ActionExecutor {
 
     /** Đầu vào: scope của step đang chạy + context đã merge. */
     public record ExecuteInput(
-            String executionId,
-            String scenarioDefinitionId,
+            Long executionId,
+            Long scenarioDefinitionId,
             String stepDefinitionId,
             int stepOrder,
-            String triggerExecutionId,
-            String actionDefinitionId,
+            Long triggerExecutionId,   // nullable for compensation actions
+            Long actionDefinitionId,
             List<ContextDataItem> contextItems
     ) {}
 }

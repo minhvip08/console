@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.simi.common.domain.Timestamped;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -18,10 +20,11 @@ import org.hibernate.type.SqlTypes;
 public class ActionVerification extends Timestamped {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "action_definition_id", nullable = false, unique = true)
-    private String actionDefinitionId;
+    private Long actionDefinitionId;
 
     @Column(nullable = false)
     private String endpoint;
@@ -43,10 +46,10 @@ public class ActionVerification extends Timestamped {
     @Column(name = "max_poll_attempts", nullable = false)
     private int maxPollAttempts = 12;
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-    public String getActionDefinitionId() { return actionDefinitionId; }
-    public void setActionDefinitionId(String v) { this.actionDefinitionId = v; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getActionDefinitionId() { return actionDefinitionId; }
+    public void setActionDefinitionId(Long v) { this.actionDefinitionId = v; }
     public String getEndpoint() { return endpoint; }
     public void setEndpoint(String v) { this.endpoint = v; }
     public String getHttpMethod() { return httpMethod; }

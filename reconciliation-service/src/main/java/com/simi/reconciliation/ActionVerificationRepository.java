@@ -5,6 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface ActionVerificationRepository extends JpaRepository<ActionVerification, String> {
-    Optional<ActionVerification> findByActionDefinitionId(String actionDefinitionId);
+public interface ActionVerificationRepository extends JpaRepository<ActionVerification, Long> {
+    Optional<ActionVerification> findByActionDefinitionId(Long actionDefinitionId);
 }

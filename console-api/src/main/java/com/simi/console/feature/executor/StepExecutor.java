@@ -7,8 +7,6 @@ import com.simi.common.domain.ScenarioExecutionStatus;
 import com.simi.common.domain.TriggerExecutionStatus;
 import com.simi.common.domain.context.ContextDataItem;
 import com.simi.common.domain.entity.*;
-import com.simi.common.ulid.IdPrefix;
-import com.simi.common.ulid.Ulid;
 import com.simi.console.feature.compensation.CompensationManager;
 import com.simi.console.feature.context.ContextStore;
 import com.simi.console.feature.context.RedisContextWriter;
@@ -162,7 +160,6 @@ public class StepExecutor {
         // INSERT new trigger_execution. UNIQUE constraint (Tầng 3) bảo vệ ở DB level
         // dù 2 request cùng INSERT — chỉ 1 thắng.
         TriggerExecution te = new TriggerExecution();
-        te.setId(Ulid.prefixed(IdPrefix.TRIGGER_EXECUTION));
         te.setScenarioExecutionId(in.executionId());
         te.setStepTriggerId(in.triggerId());
         te.setStatus(TriggerExecutionStatus.RUNNING);
@@ -173,7 +170,7 @@ public class StepExecutor {
             triggerExecutions.saveAndFlush(te);
         } catch (DataIntegrityViolationException race) {
             // Race lost — đối thủ đã INSERT trước → fetch lại
-            TriggerExecution winner = triggerExecutions
+            triggerExecutions
                     .findByScenarioExecutionIdAndStepTriggerId(in.executionId(), in.triggerId())
                     .orElseThrow();
             return TriggerResult.inFlight();
@@ -195,8 +192,10 @@ public class StepExecutor {
         // Save UI inputs từ user vào context BEFORE actions chạy — actions sẽ resolve từ đây
         saveUiInputs(in, exec, step);
 
+        String executionIdStr = String.valueOf(in.executionId());
+
         // Load merged context (previous steps + current step inputs vừa save)
-        List<ContextDataItem> context = contextStore.readPreviousSteps(in.executionId(), step.getStepOrder());
+        List<ContextDataItem> context = contextStore.readPreviousSteps(executionIdStr, step.getStepOrder());
 
         // Sequential action loop theo action_order
         var triggerActionRows = triggerActions.findByStepTriggerIdOrderByActionOrderAsc(in.triggerId());
@@ -207,7 +206,7 @@ public class StepExecutor {
             ActionExecutor.ExecuteInput input = new ActionExecutor.ExecuteInput(
                     in.executionId(),
                     exec.getScenarioDefinitionId(),
-                    step.getId(),
+                    String.valueOf(step.getId()),
                     step.getStepOrder(),
                     te.getId(),
                     sta.getActionDefinitionId(),
@@ -222,7 +221,7 @@ public class StepExecutor {
                 break; // FAILED/TIMEOUT — break loop, không chạy action tiếp theo
             }
             // Refresh context — action vừa COMPLETED có thể đã append output VARs
-            context = contextStore.readPreviousSteps(in.executionId(), step.getStepOrder());
+            context = contextStore.readPreviousSteps(executionIdStr, step.getStepOrder());
         }
 
         te.setStatus(anyFailure ? TriggerExecutionStatus.FAILED : TriggerExecutionStatus.COMPLETED);
@@ -245,21 +244,23 @@ public class StepExecutor {
 
     private void saveUiInputs(TriggerInput in, ScenarioExecution exec, StepDefinition step) {
         if (in.inputs() == null || in.inputs().isEmpty()) return;
+        String executionIdStr = String.valueOf(in.executionId());
+        String stepIdStr = String.valueOf(step.getId());
         for (Map.Entry<String, Object> e : in.inputs().entrySet()) {
             String varId = e.getKey();
             Object value = e.getValue();
-            String sourceId = "widget_input_" + step.getId();   // logical source — không có widget id thật từ UI tier 4 này
+            String sourceId = "widget_input_" + stepIdStr;   // logical source — không có widget id thật từ UI tier 4 này
             ContextDataItem.Origin origin = new ContextDataItem.Origin(
                     ContextDataItem.SourceType.UI_INPUT,
-                    exec.getScenarioDefinitionId(),
-                    step.getId(),
+                    String.valueOf(exec.getScenarioDefinitionId()),
+                    stepIdStr,
                     step.getStepOrder(),
                     sourceId,
                     "user_input",
                     null
             );
             ContextDataItem item = new ContextDataItem(
-                    ContextDataItem.buildKey(in.executionId(),
+                    ContextDataItem.buildKey(executionIdStr,
                             ContextDataItem.SourceType.UI_INPUT, sourceId, varId),
                     varId,
                     value,
@@ -268,14 +269,14 @@ public class StepExecutor {
                     origin,
                     OffsetDateTime.now()
             );
-            contextStore.appendItem(in.executionId(), item);
+            contextStore.appendItem(executionIdStr, item);
         }
     }
 
     private String summarize(List<ActionExecution> rows) {
         Map<String, Object> map = new LinkedHashMap<>();
         for (ActionExecution row : rows) {
-            map.put(row.getActionDefinitionId(),
+            map.put(String.valueOf(row.getActionDefinitionId()),
                     Map.of(
                             "status", row.getStatus().name(),
                             "actionExecutionId", row.getId(),
@@ -302,8 +303,8 @@ public class StepExecutor {
     }
 
     public record TriggerInput(
-            String executionId,
-            String triggerId,
+            Long executionId,
+            Long triggerId,
             String requestId,
             Map<String, Object> inputs  // {varId: value} từ UI widgets
     ) {}

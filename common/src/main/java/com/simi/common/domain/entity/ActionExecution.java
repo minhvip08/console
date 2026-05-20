@@ -18,16 +18,17 @@ import java.time.OffsetDateTime;
 public class ActionExecution extends Timestamped {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "scenario_execution_id", nullable = false)
-    private String scenarioExecutionId;
+    private Long scenarioExecutionId;
 
-    @Column(name = "trigger_execution_id", nullable = false)
-    private String triggerExecutionId;
+    @Column(name = "trigger_execution_id", nullable = true)
+    private Long triggerExecutionId;
 
     @Column(name = "action_definition_id", nullable = false)
-    private String actionDefinitionId;
+    private Long actionDefinitionId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -52,14 +53,14 @@ public class ActionExecution extends Timestamped {
     @Column(name = "completed_at")
     private OffsetDateTime completedAt;
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-    public String getScenarioExecutionId() { return scenarioExecutionId; }
-    public void setScenarioExecutionId(String v) { this.scenarioExecutionId = v; }
-    public String getTriggerExecutionId() { return triggerExecutionId; }
-    public void setTriggerExecutionId(String v) { this.triggerExecutionId = v; }
-    public String getActionDefinitionId() { return actionDefinitionId; }
-    public void setActionDefinitionId(String v) { this.actionDefinitionId = v; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getScenarioExecutionId() { return scenarioExecutionId; }
+    public void setScenarioExecutionId(Long v) { this.scenarioExecutionId = v; }
+    public Long getTriggerExecutionId() { return triggerExecutionId; }
+    public void setTriggerExecutionId(Long v) { this.triggerExecutionId = v; }
+    public Long getActionDefinitionId() { return actionDefinitionId; }
+    public void setActionDefinitionId(Long v) { this.actionDefinitionId = v; }
     public ActionExecutionStatus getStatus() { return status; }
     public void setStatus(ActionExecutionStatus s) { this.status = s; }
     public String getIdempotencyKey() { return idempotencyKey; }

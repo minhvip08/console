@@ -6,8 +6,6 @@ import com.simi.backoffice.feature.management.scenario.StepRepository;
 import com.simi.common.domain.entity.StepDefinition;
 import com.simi.common.domain.entity.StepTrigger;
 import com.simi.common.domain.entity.StepTriggerAction;
-import com.simi.common.ulid.IdPrefix;
-import com.simi.common.ulid.Ulid;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +36,7 @@ class StepController {
     }
 
     @GetMapping
-    public List<StepDto> list(@PathVariable String scenarioId) {
+    public List<StepDto> list(@PathVariable Long scenarioId) {
         requireScenario(scenarioId);
         return steps.findByScenarioDefinitionIdOrderByStepOrderAsc(scenarioId).stream()
                 .map(this::toDto)
@@ -46,7 +44,7 @@ class StepController {
     }
 
     @GetMapping("/{stepId}")
-    public StepDto get(@PathVariable String scenarioId, @PathVariable String stepId) {
+    public StepDto get(@PathVariable Long scenarioId, @PathVariable Long stepId) {
         requireScenario(scenarioId);
         StepDefinition s = loadStep(scenarioId, stepId);
         return toDto(s);
@@ -55,25 +53,24 @@ class StepController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
-    public StepDto create(@PathVariable String scenarioId, @Valid @RequestBody StepDto in) {
+    public StepDto create(@PathVariable Long scenarioId, @Valid @RequestBody StepDto in) {
         requireScenario(scenarioId);
 
         StepDefinition s = new StepDefinition();
-        s.setId(Ulid.prefixed(IdPrefix.STEP_DEFINITION));
         s.setScenarioDefinitionId(scenarioId);
         s.setName(in.name());
         s.setStepOrder(in.stepOrder());
         s.setUi(in.ui());
-        steps.save(s);
+        StepDefinition saved = steps.save(s);
 
-        saveTriggers(s.getId(), in.triggers());
+        saveTriggers(saved.getId(), in.triggers());
 
-        return toDto(s);
+        return toDto(saved);
     }
 
     @PutMapping("/{stepId}")
     @Transactional
-    public StepDto update(@PathVariable String scenarioId, @PathVariable String stepId,
+    public StepDto update(@PathVariable Long scenarioId, @PathVariable Long stepId,
                           @Valid @RequestBody StepDto in) {
         requireScenario(scenarioId);
         StepDefinition s = loadStep(scenarioId, stepId);
@@ -89,7 +86,7 @@ class StepController {
 
     @DeleteMapping("/{stepId}")
     @Transactional
-    public ResponseEntity<Void> delete(@PathVariable String scenarioId, @PathVariable String stepId) {
+    public ResponseEntity<Void> delete(@PathVariable Long scenarioId, @PathVariable Long stepId) {
         requireScenario(scenarioId);
         if (!steps.existsById(stepId)) return ResponseEntity.notFound().build();
         replaceTriggers(stepId, List.of());
@@ -99,17 +96,15 @@ class StepController {
 
     // ---- helpers ----
 
-    private void saveTriggers(String stepId, List<StepDto.TriggerDto> in) {
+    private void saveTriggers(Long stepId, List<StepDto.TriggerDto> in) {
         if (in == null) return;
         for (StepDto.TriggerDto t : in) {
-            String triggerId = Ulid.prefixed(IdPrefix.STEP_TRIGGER);
             StepTrigger st = new StepTrigger();
-            st.setId(triggerId);
             st.setStepDefinitionId(stepId);
             st.setName(t.name());
             st.setTriggerType(t.triggerType());
             st.setWidgetId(t.widgetId());
-            triggers.save(st);
+            StepTrigger savedTrigger = triggers.save(st);
 
             if (t.actions() != null) {
                 for (StepDto.TriggerActionDto a : t.actions()) {
@@ -118,8 +113,7 @@ class StepController {
                                 "action_definition not found: " + a.actionDefinitionId());
                     }
                     StepTriggerAction sta = new StepTriggerAction();
-                    sta.setId(Ulid.prefixed("sta"));
-                    sta.setStepTriggerId(triggerId);
+                    sta.setStepTriggerId(savedTrigger.getId());
                     sta.setActionDefinitionId(a.actionDefinitionId());
                     sta.setActionOrder(a.actionOrder());
                     triggerActions.save(sta);
@@ -128,7 +122,7 @@ class StepController {
         }
     }
 
-    private void replaceTriggers(String stepId, List<StepDto.TriggerDto> in) {
+    private void replaceTriggers(Long stepId, List<StepDto.TriggerDto> in) {
         // Cascade delete triggers + their junction rows
         for (StepTrigger t : triggers.findByStepDefinitionId(stepId)) {
             triggerActions.deleteByStepTriggerId(t.getId());
@@ -150,13 +144,13 @@ class StepController {
         return StepDto.from(s, triggerDtos);
     }
 
-    private void requireScenario(String scenarioId) {
+    private void requireScenario(Long scenarioId) {
         if (!scenarios.existsById(scenarioId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "scenario not found: " + scenarioId);
         }
     }
 
-    private StepDefinition loadStep(String scenarioId, String stepId) {
+    private StepDefinition loadStep(Long scenarioId, Long stepId) {
         StepDefinition s = steps.findById(stepId).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "step not found: " + stepId));
         if (!s.getScenarioDefinitionId().equals(scenarioId)) {

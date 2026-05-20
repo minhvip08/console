@@ -31,7 +31,7 @@ public class MockRoleStoreClient implements RoleStoreClient {
     public Set<String> getAllowedScenarioIds(String userId) {
         // Mock: mọi user đều có quyền tất cả scenario
         Set<String> all = scenarios.findAll().stream()
-                .map(s -> s.getId())
+                .map(s -> s.getId().toString())
                 .collect(Collectors.toSet());
         log.debug("MockRoleStoreClient: user={} → allowed {} scenarios", userId, all.size());
         return all;

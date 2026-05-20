@@ -6,8 +6,8 @@
 -- =====================================================================
 
 CREATE TABLE scenario_execution (
-    id                     VARCHAR PRIMARY KEY,
-    scenario_definition_id VARCHAR NOT NULL REFERENCES scenario_definition(id),
+    id                     BIGSERIAL PRIMARY KEY,
+    scenario_definition_id BIGINT NOT NULL REFERENCES scenario_definition(id),
     status                 VARCHAR NOT NULL CHECK (status IN (
         'PENDING','EXECUTING','COMPLETED','FAILED',
         'COMPENSATING','COMPENSATED','COMPENSATION_FAILED'
@@ -21,9 +21,9 @@ CREATE TABLE scenario_execution (
 
 -- trigger_execution: Tầng 3 idempotency. UNIQUE đảm bảo 1 trigger / 1 execution.
 CREATE TABLE trigger_execution (
-    id                    VARCHAR PRIMARY KEY,
-    scenario_execution_id VARCHAR NOT NULL REFERENCES scenario_execution(id),
-    step_trigger_id       VARCHAR NOT NULL REFERENCES step_trigger(id),
+    id                    BIGSERIAL PRIMARY KEY,
+    scenario_execution_id BIGINT NOT NULL REFERENCES scenario_execution(id),
+    step_trigger_id       BIGINT NOT NULL REFERENCES step_trigger(id),
     status                VARCHAR NOT NULL CHECK (status IN ('PENDING','RUNNING','COMPLETED','FAILED')) DEFAULT 'PENDING',
     request_id            VARCHAR,
     started_at            TIMESTAMPTZ,
@@ -35,11 +35,12 @@ CREATE TABLE trigger_execution (
 
 -- action_execution: Tầng 4 idempotency. idempotency_key = SHA256(execId + actDefId + sorted_params)
 -- s3_ref chỉ set khi response_snapshot > ~100KB (claim check pattern).
+-- trigger_execution_id nullable: compensation actions không có trigger execution.
 CREATE TABLE action_execution (
-    id                    VARCHAR PRIMARY KEY,
-    scenario_execution_id VARCHAR NOT NULL REFERENCES scenario_execution(id),
-    trigger_execution_id  VARCHAR NOT NULL REFERENCES trigger_execution(id),
-    action_definition_id  VARCHAR NOT NULL REFERENCES action_definition(id),
+    id                    BIGSERIAL PRIMARY KEY,
+    scenario_execution_id BIGINT NOT NULL REFERENCES scenario_execution(id),
+    trigger_execution_id  BIGINT REFERENCES trigger_execution(id),
+    action_definition_id  BIGINT NOT NULL REFERENCES action_definition(id),
     status                VARCHAR NOT NULL CHECK (status IN (
         'PENDING',
         'PROCESSING',

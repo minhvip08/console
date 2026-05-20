@@ -38,7 +38,7 @@ class CompensationController {
      */
     @GetMapping("/compensation-status")
     public ResponseEntity<CompensationStatusResponse> getStatus(
-            @PathVariable String executionId,
+            @PathVariable Long executionId,
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
         // RBAC: check execution permission (docs/09)
         if (userId != null && !userId.isBlank()) {
@@ -58,7 +58,7 @@ class CompensationController {
      */
     @PostMapping("/retry-compensation")
     public ResponseEntity<CompensationRetryResponse> retryCompensation(
-            @PathVariable String executionId,
+            @PathVariable Long executionId,
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
         // RBAC: check execution permission (docs/09)
         if (userId != null && !userId.isBlank()) {
@@ -106,11 +106,11 @@ class CompensationController {
     }
 
     public record SagaEntryDto(
-            String id,
-            String actionDefinitionId,
+            Long id,
+            Long actionDefinitionId,
             int stepOrder,
             SagaCompensationStatus status,
-            String compensationActionExecutionId,
+            Long compensationActionExecutionId,
             OffsetDateTime createdAt,
             OffsetDateTime updatedAt
     ) {
@@ -128,9 +128,9 @@ class CompensationController {
     }
 
     public record DeadLetterDto(
-            String id,
-            String sagaCompensationLogId,
-            String actionDefinitionId,
+            Long id,
+            Long sagaCompensationLogId,
+            Long actionDefinitionId,
             String failureReason,
             int retryCount,
             boolean resolved,

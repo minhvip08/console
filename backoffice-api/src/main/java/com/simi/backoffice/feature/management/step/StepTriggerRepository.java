@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface StepTriggerRepository extends JpaRepository<StepTrigger, String> {
-    List<StepTrigger> findByStepDefinitionId(String stepDefinitionId);
-    void deleteByStepDefinitionId(String stepDefinitionId);
+public interface StepTriggerRepository extends JpaRepository<StepTrigger, Long> {
+    List<StepTrigger> findByStepDefinitionId(Long stepDefinitionId);
+    void deleteByStepDefinitionId(Long stepDefinitionId);
 }

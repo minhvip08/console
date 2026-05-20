@@ -3,6 +3,8 @@ package com.simi.common.domain.entity;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -19,13 +21,14 @@ import java.time.OffsetDateTime;
 public class ReconciliationEvent {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "scenario_execution_id", nullable = false)
-    private String scenarioExecutionId;
+    private Long scenarioExecutionId;
 
     @Column(name = "action_execution_id", nullable = false)
-    private String actionExecutionId;
+    private Long actionExecutionId;
 
     @Column(name = "drift_type", nullable = false)
     private String driftType; // GHOST_TRANSACTION, ORPHAN_RECORD, LOST_RESPONSE, STALE_COMPENSATION
@@ -55,12 +58,12 @@ public class ReconciliationEvent {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-    public String getScenarioExecutionId() { return scenarioExecutionId; }
-    public void setScenarioExecutionId(String v) { this.scenarioExecutionId = v; }
-    public String getActionExecutionId() { return actionExecutionId; }
-    public void setActionExecutionId(String v) { this.actionExecutionId = v; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getScenarioExecutionId() { return scenarioExecutionId; }
+    public void setScenarioExecutionId(Long v) { this.scenarioExecutionId = v; }
+    public Long getActionExecutionId() { return actionExecutionId; }
+    public void setActionExecutionId(Long v) { this.actionExecutionId = v; }
     public String getDriftType() { return driftType; }
     public void setDriftType(String v) { this.driftType = v; }
     public String getDbState() { return dbState; }

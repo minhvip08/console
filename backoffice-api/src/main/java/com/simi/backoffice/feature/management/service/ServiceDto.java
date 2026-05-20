@@ -4,7 +4,7 @@ import com.simi.common.domain.entity.Service;
 import jakarta.validation.constraints.NotBlank;
 
 public record ServiceDto(
-        String id,
+        Long id,
         @NotBlank String name,
         @NotBlank String baseUrl
 ) {

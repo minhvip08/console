@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface StepTriggerActionRepository extends JpaRepository<StepTriggerAction, String> {
-    List<StepTriggerAction> findByStepTriggerIdOrderByActionOrderAsc(String stepTriggerId);
-    void deleteByStepTriggerId(String stepTriggerId);
+public interface StepTriggerActionRepository extends JpaRepository<StepTriggerAction, Long> {
+    List<StepTriggerAction> findByStepTriggerIdOrderByActionOrderAsc(Long stepTriggerId);
+    void deleteByStepTriggerId(Long stepTriggerId);
 }

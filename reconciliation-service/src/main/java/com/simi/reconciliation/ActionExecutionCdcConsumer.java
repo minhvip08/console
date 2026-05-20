@@ -52,7 +52,7 @@ public class ActionExecutionCdcConsumer {
             }
 
             String status = after.has("status") ? after.get("status").asText() : null;
-            String actionExecutionId = after.has("id") ? after.get("id").asText() : null;
+            Long actionExecutionId = after.has("id") ? after.get("id").asLong() : null;
 
             if (!"TIMEOUT".equals(status)) {
                 // Only TIMEOUT status triggers reconciliation (docs/07)

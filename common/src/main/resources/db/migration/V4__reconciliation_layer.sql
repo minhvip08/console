@@ -5,9 +5,9 @@
 -- =====================================================================
 
 CREATE TABLE reconciliation_event (
-    id                    VARCHAR PRIMARY KEY,
-    scenario_execution_id VARCHAR NOT NULL REFERENCES scenario_execution(id),
-    action_execution_id   VARCHAR NOT NULL REFERENCES action_execution(id),
+    id                    BIGSERIAL PRIMARY KEY,
+    scenario_execution_id BIGINT NOT NULL REFERENCES scenario_execution(id),
+    action_execution_id   BIGINT NOT NULL REFERENCES action_execution(id),
     drift_type            VARCHAR NOT NULL CHECK (drift_type IN (
         'GHOST_TRANSACTION','ORPHAN_RECORD','LOST_RESPONSE','STALE_COMPENSATION'
     )),

@@ -10,14 +10,14 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public record StepDto(
-        String id,
+        Long id,
         @NotBlank String name,
         int stepOrder,
         @NotNull JsonNode ui,
         List<TriggerDto> triggers
 ) {
     public record TriggerDto(
-            String id,
+            Long id,
             @NotBlank String name,
             @NotBlank String triggerType,   // button_click | on_load | on_change
             String widgetId,                // null khi trigger_type = on_load
@@ -29,7 +29,7 @@ public record StepDto(
     }
 
     public record TriggerActionDto(
-            @NotBlank String actionDefinitionId,
+            @NotNull Long actionDefinitionId,
             int actionOrder
     ) {
         public static TriggerActionDto from(StepTriggerAction a) {

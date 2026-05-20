@@ -6,14 +6,12 @@ import com.simi.common.domain.ScenarioExecutionStatus;
 import com.simi.common.domain.entity.ScenarioDefinition;
 import com.simi.common.domain.entity.ScenarioExecution;
 import com.simi.common.domain.entity.StepDefinition;
-import com.simi.common.ulid.IdPrefix;
-import com.simi.common.ulid.Ulid;
 import com.simi.console.feature.context.ContextSnapshot;
 import com.simi.console.feature.context.ContextStore;
 import com.simi.console.feature.context.ScenarioExecutionRepository;
 import com.simi.console.feature.rbac.PermissionService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -70,7 +68,6 @@ class ExecutionController {
         }
 
         ScenarioExecution exec = new ScenarioExecution();
-        exec.setId(Ulid.prefixed(IdPrefix.SCENARIO_EXECUTION));
         exec.setScenarioDefinitionId(def.getId());
         exec.setStatus(ScenarioExecutionStatus.EXECUTING);
         exec.setCurrentStepOrder(stepList.get(0).getStepOrder());
@@ -85,7 +82,7 @@ class ExecutionController {
     /** GET /api/executions/{id} — load execution + scenario info + step list. */
     @GetMapping("/{id}")
     public ExecutionDto get(
-            @PathVariable String id,
+            @PathVariable Long id,
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
         // RBAC: check execution permission (docs/09)
         if (userId != null && !userId.isBlank()) {
@@ -105,7 +102,7 @@ class ExecutionController {
     @PostMapping("/{id}/resume")
     @Transactional
     public ExecutionDto resume(
-            @PathVariable String id,
+            @PathVariable Long id,
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
         // RBAC: check execution permission (docs/09)
         if (userId != null && !userId.isBlank()) {
@@ -118,13 +115,13 @@ class ExecutionController {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "execution is " + exec.getStatus() + ", read-only — cannot resume");
         }
-        ContextSnapshot snapshot = contextStore.loadSnapshotFromDb(id);
-        contextStore.restoreToRedis(id, snapshot);
+        ContextSnapshot snapshot = contextStore.loadSnapshotFromDb(String.valueOf(id));
+        contextStore.restoreToRedis(String.valueOf(id), snapshot);
 
         ScenarioDefinition def = scenarios.findById(exec.getScenarioDefinitionId()).orElseThrow();
         List<StepDefinition> stepList = steps.findByScenarioDefinitionIdOrderByStepOrderAsc(def.getId());
         return ExecutionDto.from(exec, def, stepList);
     }
 
-    public record StartRequest(@NotBlank String scenarioId, String userId) {}
+    public record StartRequest(@NotNull Long scenarioId, String userId) {}
 }

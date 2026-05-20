@@ -19,7 +19,7 @@ public final class IdempotencyKey {
 
     private IdempotencyKey() {}
 
-    public static String compute(String executionId, String actionDefinitionId, Map<String, ?> params) {
+    public static String compute(Long executionId, Long actionDefinitionId, Map<String, ?> params) {
         TreeMap<String, ?> sorted = new TreeMap<>(params);
         StringBuilder paramStr = new StringBuilder();
         boolean first = true;

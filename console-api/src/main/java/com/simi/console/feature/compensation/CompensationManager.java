@@ -7,8 +7,6 @@ import com.simi.common.domain.SagaCompensationStatus;
 import com.simi.common.domain.ScenarioExecutionStatus;
 import com.simi.common.domain.context.ContextDataItem;
 import com.simi.common.domain.entity.*;
-import com.simi.common.ulid.IdPrefix;
-import com.simi.common.ulid.Ulid;
 import com.simi.console.feature.context.ScenarioExecutionRepository;
 import com.simi.console.feature.executor.ActionDefinitionRepository;
 import com.simi.console.feature.executor.ActionExecutor;
@@ -78,7 +76,7 @@ public class CompensationManager {
      * @return kết quả compensation: COMPENSATED hoặc COMPENSATION_FAILED
      */
     @Transactional
-    public CompensationResult compensate(String scenarioExecutionId) {
+    public CompensationResult compensate(Long scenarioExecutionId) {
         ScenarioExecution exec = scenarioExecutions.findById(scenarioExecutionId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "execution not found: " + scenarioExecutionId));
@@ -186,7 +184,7 @@ public class CompensationManager {
      * Re-runs only non-COMPENSATED entries in reverse step_order.
      */
     @Transactional
-    public CompensationResult retryCompensation(String scenarioExecutionId) {
+    public CompensationResult retryCompensation(Long scenarioExecutionId) {
         // Reset any COMPENSATION_FAILED saga entries back to PENDING
         List<SagaCompensationLog> entries =
                 sagaLogs.findByScenarioExecutionIdOrderByStepOrderDesc(scenarioExecutionId);
@@ -230,20 +228,17 @@ public class CompensationManager {
                 new TypeReference<>() {});
 
         // Compensation action definition
-        String compActionDefId = compDef.getCompensationActionDefinitionId();
+        Long compActionDefId = compDef.getCompensationActionDefinitionId();
         ActionDefinition compActionDef = actionDefs.findById(compActionDefId)
                 .orElseThrow(() -> new IllegalStateException(
                         "Compensation action_definition not found: " + compActionDefId));
-
-        // Generate a unique trigger execution ID for the compensation action
-        String compTriggerExecId = Ulid.prefixed(IdPrefix.TRIGGER_EXECUTION) + "_comp";
 
         ActionExecutor.ExecuteInput input = new ActionExecutor.ExecuteInput(
                 exec.getId(),
                 exec.getScenarioDefinitionId(),
                 "compensation_step",   // virtual step — compensation không thuộc step nào cụ thể
                 sagaEntry.getStepOrder(),
-                compTriggerExecId,
+                null,                  // no trigger execution for compensation actions
                 compActionDefId,
                 snapshotContext
         );
@@ -259,7 +254,6 @@ public class CompensationManager {
         sagaLogs.save(entry);
 
         CompensationDeadLetter dl = new CompensationDeadLetter();
-        dl.setId(Ulid.prefixed(IdPrefix.DEAD_LETTER));
         dl.setSagaCompensationLogId(entry.getId());
         dl.setScenarioExecutionId(entry.getScenarioExecutionId());
         dl.setActionDefinitionId(compDef.getCompensationActionDefinitionId());
@@ -276,7 +270,7 @@ public class CompensationManager {
     /**
      * Get current compensation status for an execution.
      */
-    public CompensationStatusResult getCompensationStatus(String scenarioExecutionId) {
+    public CompensationStatusResult getCompensationStatus(Long scenarioExecutionId) {
         ScenarioExecution exec = scenarioExecutions.findById(scenarioExecutionId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "execution not found: " + scenarioExecutionId));

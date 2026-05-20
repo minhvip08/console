@@ -3,6 +3,8 @@ package com.simi.common.domain.entity;
 import com.simi.common.domain.Timestamped;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -17,13 +19,14 @@ import org.hibernate.type.SqlTypes;
 public class ActionCompensation extends Timestamped {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "action_definition_id", nullable = false, unique = true)
-    private String actionDefinitionId;
+    private Long actionDefinitionId;
 
     @Column(name = "compensation_action_definition_id", nullable = false)
-    private String compensationActionDefinitionId;
+    private Long compensationActionDefinitionId;
 
     @Column(name = "trigger_type", nullable = false)
     private String triggerType; // auto | manual | none
@@ -32,12 +35,12 @@ public class ActionCompensation extends Timestamped {
     @Column(name = "required_var_ids", nullable = false, columnDefinition = "TEXT[]")
     private String[] requiredVarIds = new String[0];
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-    public String getActionDefinitionId() { return actionDefinitionId; }
-    public void setActionDefinitionId(String v) { this.actionDefinitionId = v; }
-    public String getCompensationActionDefinitionId() { return compensationActionDefinitionId; }
-    public void setCompensationActionDefinitionId(String v) { this.compensationActionDefinitionId = v; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getActionDefinitionId() { return actionDefinitionId; }
+    public void setActionDefinitionId(Long v) { this.actionDefinitionId = v; }
+    public Long getCompensationActionDefinitionId() { return compensationActionDefinitionId; }
+    public void setCompensationActionDefinitionId(Long v) { this.compensationActionDefinitionId = v; }
     public String getTriggerType() { return triggerType; }
     public void setTriggerType(String triggerType) { this.triggerType = triggerType; }
     public String[] getRequiredVarIds() { return requiredVarIds; }

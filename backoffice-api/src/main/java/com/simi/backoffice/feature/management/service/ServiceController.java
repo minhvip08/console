@@ -1,8 +1,6 @@
 package com.simi.backoffice.feature.management.service;
 
 import com.simi.common.domain.entity.Service;
-import com.simi.common.ulid.IdPrefix;
-import com.simi.common.ulid.Ulid;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +25,7 @@ class ServiceController {
     }
 
     @GetMapping("/{id}")
-    public ServiceDto get(@PathVariable String id) {
+    public ServiceDto get(@PathVariable Long id) {
         return ServiceDto.from(load(id));
     }
 
@@ -38,14 +36,13 @@ class ServiceController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "service.name already exists");
         }
         Service s = new Service();
-        s.setId(Ulid.prefixed(IdPrefix.SERVICE));
         s.setName(in.name());
         s.setBaseUrl(in.baseUrl());
         return ServiceDto.from(repo.save(s));
     }
 
     @PutMapping("/{id}")
-    public ServiceDto update(@PathVariable String id, @Valid @RequestBody ServiceDto in) {
+    public ServiceDto update(@PathVariable Long id, @Valid @RequestBody ServiceDto in) {
         Service s = load(id);
         s.setName(in.name());
         s.setBaseUrl(in.baseUrl());
@@ -53,13 +50,13 @@ class ServiceController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable String id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (!repo.existsById(id)) return ResponseEntity.notFound().build();
         repo.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 
-    private Service load(String id) {
+    private Service load(Long id) {
         return repo.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "service not found: " + id));
     }

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.simi.common.domain.Timestamped;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -18,10 +20,11 @@ import org.hibernate.type.SqlTypes;
 public class StepDefinition extends Timestamped {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "scenario_definition_id", nullable = false)
-    private String scenarioDefinitionId;
+    private Long scenarioDefinitionId;
 
     @Column(nullable = false)
     private String name;
@@ -33,10 +36,10 @@ public class StepDefinition extends Timestamped {
     @Column(name = "ui", nullable = false, columnDefinition = "jsonb")
     private JsonNode ui;
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-    public String getScenarioDefinitionId() { return scenarioDefinitionId; }
-    public void setScenarioDefinitionId(String v) { this.scenarioDefinitionId = v; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getScenarioDefinitionId() { return scenarioDefinitionId; }
+    public void setScenarioDefinitionId(Long v) { this.scenarioDefinitionId = v; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public int getStepOrder() { return stepOrder; }

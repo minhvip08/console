@@ -5,6 +5,7 @@ import com.simi.common.domain.entity.ActionExecution;
 import com.simi.console.feature.rbac.PermissionService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -39,7 +40,7 @@ class TriggerController {
 
     @PostMapping
     public ResponseEntity<TriggerResponse> trigger(
-            @PathVariable String executionId,
+            @PathVariable Long executionId,
             @RequestHeader(value = "X-Request-Id", required = false) String requestIdHeader,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             @Valid @RequestBody TriggerRequest req) {
@@ -78,7 +79,7 @@ class TriggerController {
     }
 
     public record TriggerRequest(
-            @NotBlank String triggerId,
+            @NotNull Long triggerId,
             String requestId,            // fallback if X-Request-Id header missing
             Map<String, Object> inputs   // {varId: value}
     ) {}
@@ -106,8 +107,8 @@ class TriggerController {
     }
 
     public record ActionSummary(
-            String actionExecutionId,
-            String actionDefinitionId,
+            Long actionExecutionId,
+            Long actionDefinitionId,
             ActionExecutionStatus status,
             String errorMessage
     ) {

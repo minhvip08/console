@@ -36,12 +36,12 @@ class ScenarioController {
         }
         Set<String> allowed = permissionService.getAllowedScenarioIds(userId);
         return scenarios.findAll().stream()
-                .filter(s -> allowed.contains(s.getId()))
+                .filter(s -> allowed.contains(String.valueOf(s.getId())))
                 .map(ScenarioSummary::from)
                 .toList();
     }
 
-    public record ScenarioSummary(String id, String name, String description) {
+    public record ScenarioSummary(Long id, String name, String description) {
         static ScenarioSummary from(ScenarioDefinition d) {
             return new ScenarioSummary(d.getId(), d.getName(), d.getDescription());
         }

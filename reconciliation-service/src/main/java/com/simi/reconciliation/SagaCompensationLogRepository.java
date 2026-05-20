@@ -5,6 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface SagaCompensationLogRepository extends JpaRepository<SagaCompensationLog, String> {
-    List<SagaCompensationLog> findByScenarioExecutionIdOrderByStepOrderDesc(String scenarioExecutionId);
+public interface SagaCompensationLogRepository extends JpaRepository<SagaCompensationLog, Long> {
+    List<SagaCompensationLog> findByScenarioExecutionIdOrderByStepOrderDesc(Long scenarioExecutionId);
 }

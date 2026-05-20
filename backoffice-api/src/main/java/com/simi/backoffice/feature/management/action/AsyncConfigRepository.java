@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface AsyncConfigRepository extends JpaRepository<AsyncActionConfig, String> {
-    Optional<AsyncActionConfig> findByActionDefinitionId(String actionDefinitionId);
-    void deleteByActionDefinitionId(String actionDefinitionId);
+public interface AsyncConfigRepository extends JpaRepository<AsyncActionConfig, Long> {
+    Optional<AsyncActionConfig> findByActionDefinitionId(Long actionDefinitionId);
+    void deleteByActionDefinitionId(Long actionDefinitionId);
 }

@@ -7,7 +7,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 public record ScenarioDto(
-        String id,
+        Long id,
         @NotBlank String name,
         String description,
         String createdBy,
@@ -21,5 +21,5 @@ public record ScenarioDto(
                 s.getCreatedAt(), s.getUpdatedAt(), steps);
     }
 
-    public record StepSummary(String id, String name, int stepOrder) {}
+    public record StepSummary(Long id, String name, int stepOrder) {}
 }
