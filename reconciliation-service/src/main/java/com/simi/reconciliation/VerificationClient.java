@@ -31,13 +31,19 @@ public class VerificationClient {
     private final RestClient restClient;
     private final ObjectMapper json;
     private final int defaultTimeoutMs;
+    private final int maxRetries;
+    private final long initialBackoffMs;
 
     public VerificationClient(RestClient.Builder restClientBuilder,
                               ObjectMapper json,
-                              @Value("${reconciliation.verification.default-timeout-ms:10000}") int defaultTimeoutMs) {
+                              @Value("${reconciliation.verification.default-timeout-ms:10000}") int defaultTimeoutMs,
+                              @Value("${reconciliation.verification.max-retries:3}") int maxRetries,
+                              @Value("${reconciliation.verification.backoff-ms:1000}") long initialBackoffMs) {
         this.restClient = restClientBuilder.build();
         this.json = json;
         this.defaultTimeoutMs = defaultTimeoutMs;
+        this.maxRetries = maxRetries;
+        this.initialBackoffMs = initialBackoffMs;
     }
 
     /**
@@ -49,8 +55,36 @@ public class VerificationClient {
      * @param idempotencyKey the idempotency key used when calling the action
      * @return verification result
      */
+    /**
+     * Verify with exponential backoff retry on transient errors (network, 5xx).
+     * Non-error states (PROCESSED, NOT_FOUND, PENDING) return immediately without retry.
+     */
     public VerificationResult verify(Service service, ActionDefinition actionDef,
                                      ActionVerification verification, String idempotencyKey) {
+        long backoffMs = initialBackoffMs;
+        VerificationResult last = null;
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            last = doVerify(service, actionDef, verification, idempotencyKey);
+            if (!"ERROR".equals(last.thirdPartyState())) return last;
+            if (attempt < maxRetries) {
+                log.warn("Verify attempt {}/{} failed for action_definition={}, retrying in {}ms",
+                        attempt, maxRetries, actionDef.getId(), backoffMs);
+                try {
+                    Thread.sleep(backoffMs);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+                backoffMs *= 2;
+            }
+        }
+        log.error("All {} verify attempts exhausted for action_definition={}: {}",
+                maxRetries, actionDef.getId(), last != null ? last.errorMessage() : "unknown");
+        return last;
+    }
+
+    private VerificationResult doVerify(Service service, ActionDefinition actionDef,
+                                        ActionVerification verification, String idempotencyKey) {
         try {
             String url = buildVerificationUrl(service, verification, idempotencyKey);
             log.info("Verifying 3rd party state: {} {} (action={})",
@@ -79,7 +113,7 @@ public class VerificationClient {
             return new VerificationResult(thirdPartyState, responseBody, statusCode, null);
 
         } catch (RestClientException e) {
-            log.error("Verification call failed for action {}: {}", actionDef.getId(), e.getMessage());
+            log.error("Verification call failed for action_definition={}: {}", actionDef.getId(), e.getMessage());
             return new VerificationResult("ERROR", null, 0, e.getMessage());
         }
     }

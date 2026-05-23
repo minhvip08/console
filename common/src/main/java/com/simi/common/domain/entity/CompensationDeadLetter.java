@@ -43,6 +43,9 @@ public class CompensationDeadLetter {
     @Column(name = "retry_count", nullable = false)
     private int retryCount = 0;
 
+    @Column(name = "next_retry_at")
+    private OffsetDateTime nextRetryAt;
+
     @Column(nullable = false)
     private boolean resolved = false;
 
@@ -68,6 +71,8 @@ public class CompensationDeadLetter {
     public void setRetryCount(int v) { this.retryCount = v; }
     public boolean isResolved() { return resolved; }
     public void setResolved(boolean v) { this.resolved = v; }
+    public OffsetDateTime getNextRetryAt() { return nextRetryAt; }
+    public void setNextRetryAt(OffsetDateTime v) { this.nextRetryAt = v; }
     public OffsetDateTime getResolvedAt() { return resolvedAt; }
     public void setResolvedAt(OffsetDateTime v) { this.resolvedAt = v; }
     public OffsetDateTime getCreatedAt() { return createdAt; }

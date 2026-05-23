@@ -22,6 +22,9 @@ spring:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       # Idempotent consumer — at-least-once delivery, app handles dedup
       enable-auto-commit: false
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
     listener:
       ack-mode: manual
 
@@ -35,10 +38,18 @@ management:
         include: health,info
   endpoint:
     health:
-      show-details: when_authorized
+      show-details: when-authorized
 
 # ─── Reconciliation config ───
 reconciliation:
   verification:
     default-timeout-ms: ${VERIFY_TIMEOUT_MS:10000}
     max-retries: ${VERIFY_MAX_RETRIES:3}
+    backoff-ms: ${VERIFY_BACKOFF_MS:1000}
+  polling:
+    scheduler-interval-ms: ${POLL_SCHEDULER_MS:30000}
+    timeout-threshold-minutes: ${POLL_TIMEOUT_THRESHOLD_MIN:5}
+  compensation:
+    max-retries: ${COMP_MAX_RETRIES:3}
+    retry-delay-ms: ${COMP_RETRY_DELAY_MS:30000}
+    retry-cap-ms: ${COMP_RETRY_CAP_MS:300000}

@@ -26,5 +26,11 @@ dependencies {
     implementation 'software.amazon.awssdk:cloudwatch'
 
     runtimeOnly 'org.postgresql:postgresql'
+
+    // Testcontainers 2.x (SB4 BOM) — artifact names thay đổi so với 1.x
+    testImplementation platform('org.testcontainers:testcontainers-bom:2.0.5')
+    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+    testImplementation 'org.testcontainers:testcontainers-postgresql'
+    testImplementation 'org.mockito:mockito-core'
 }
 

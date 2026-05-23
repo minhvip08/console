@@ -87,28 +87,29 @@ public class ReconciliationEngine {
         ActionVerification verification = verificationOpt.get();
         Service service = services.findById(actionDef.getServiceId()).orElseThrow();
 
-        // Call 3rd party verify endpoint
+        // Call 3rd party verify endpoint (retries built into VerificationClient)
         VerificationClient.VerificationResult verifyResult =
                 verificationClient.verify(service, actionDef, verification,
                         actionExec.getIdempotencyKey());
 
         // Apply State Matrix
-        return applyStateMatrix(actionExec, verifyResult);
+        return applyStateMatrix(actionExec, verification, verifyResult);
     }
 
     /**
      * Apply the State Matrix decision (docs/07 §State Matrix).
      */
     private ReconcileResult applyStateMatrix(ActionExecution actionExec,
+                                              ActionVerification verification,
                                               VerificationClient.VerificationResult verifyResult) {
         String dbState = actionExec.getStatus().name();
         String tpState = verifyResult.thirdPartyState();
 
         return switch (tpState) {
             case "PROCESSED" -> handleGhostTransaction(actionExec, verifyResult);
-            case "NOT_FOUND" -> handleCleanTimeout(actionExec, verifyResult);
-            case "PENDING" -> handleStillProcessing(actionExec, verifyResult);
-            case "ERROR" -> handleVerificationError(actionExec, verifyResult);
+            case "NOT_FOUND"  -> handleCleanTimeout(actionExec, verifyResult);
+            case "PENDING"    -> handleStillProcessing(actionExec, verification, verifyResult);
+            case "ERROR"      -> handleVerificationError(actionExec, verifyResult);
             default -> {
                 log.warn("Unknown 3rd party state: {} for action_execution {}",
                         tpState, actionExec.getId());
@@ -208,15 +209,33 @@ public class ReconciliationEngine {
 
     /**
      * Still Processing — DB=TIMEOUT, 3rd party=PENDING.
-     * Need to poll again after interval.
+     * Track attempt count against max_poll_attempts. RetryScheduler will re-invoke reconcileTimeout().
      */
     private ReconcileResult handleStillProcessing(ActionExecution actionExec,
+                                                   ActionVerification verification,
                                                    VerificationClient.VerificationResult verifyResult) {
-        log.info("STILL PROCESSING: action_execution={} — 3rd party says PENDING, will retry",
-                actionExec.getId());
-        // Don't change DB state — consumer will retry on next CDC event or scheduled poll
+        long attemptCount = reconciliationEvents.countByActionExecutionId(actionExec.getId());
+        int maxAttempts = verification.getMaxPollAttempts();
+
+        if (attemptCount >= maxAttempts) {
+            log.warn("EXCEEDED MAX POLL ATTEMPTS ({}/{}) for action_execution={} — escalating to manual queue",
+                    attemptCount, maxAttempts, actionExec.getId());
+            insertReconciliationEvent(actionExec, "TIMEOUT", "PENDING",
+                    "LOST_RESPONSE", "MANUAL_QUEUED", verifyResult.responseBody(),
+                    "Exceeded max poll attempts (" + maxAttempts + ") — manual intervention required");
+            return new ReconcileResult("MANUAL_QUEUED",
+                    "Max poll attempts (" + maxAttempts + ") exceeded");
+        }
+
+        // Record this attempt — RetryScheduler will re-invoke after poll_interval_ms
+        insertReconciliationEvent(actionExec, "TIMEOUT", "PENDING",
+                "LOST_RESPONSE", "NO_ACTION", verifyResult.responseBody(),
+                "Poll attempt " + (attemptCount + 1) + "/" + maxAttempts
+                        + " — 3rd party still PENDING, RetryScheduler will re-check");
+        log.info("STILL PROCESSING: action_execution={}, attempt {}/{} recorded",
+                actionExec.getId(), attemptCount + 1, maxAttempts);
         return new ReconcileResult("RETRY_LATER",
-                "3rd party still processing — will check again");
+                "Attempt " + (attemptCount + 1) + "/" + maxAttempts);
     }
 
     /**

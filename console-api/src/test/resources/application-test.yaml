@@ -1,0 +1,33 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  data:
+    redis:
+      # Overridden at runtime by @DynamicPropertySource in integration tests
+      host: localhost
+      port: 6379
+
+management:
+  cloudwatch:
+    metrics:
+      export:
+        enabled: false
+
+aws:
+  endpoint: http://localhost:4566
+  region: ap-northeast-2
+  access-key: test
+  secret-key: test
+  s3:
+    artifacts-bucket: test-bucket
+    claim-check-threshold-bytes: 102400
+
+rolestore:
+  mock: true
+
+logging:
+  level:
+    com.simi: WARN
+    org.hibernate.SQL: WARN
