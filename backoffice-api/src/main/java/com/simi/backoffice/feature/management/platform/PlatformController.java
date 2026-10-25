@@ -15,10 +15,12 @@ class PlatformController {
 
     private final PlatformApiClient platform;
     private final SwaggerImporter importer;
+    private final com.simi.common.shopee.ShopeeMockPolicy shopeePolicy;
 
-    PlatformController(PlatformApiClient platform, SwaggerImporter importer) {
+    PlatformController(PlatformApiClient platform, SwaggerImporter importer, com.simi.common.shopee.ShopeeMockPolicy shopeePolicy) {
         this.platform = platform;
         this.importer = importer;
+        this.shopeePolicy = shopeePolicy;
     }
 
     /** List services khả dụng để import (sau khi user chọn → POST /api/imports). */
@@ -35,7 +37,11 @@ class PlatformController {
 
     /** Import action_definitions từ một platform service. */
     @PostMapping("/imports")
-    public SwaggerImporter.ImportResult importService(@RequestBody ImportRequest req) {
+    public SwaggerImporter.ImportResult importService(
+            @org.springframework.web.bind.annotation.RequestHeader(value="X-User-Id", required=false) String user,
+            @jakarta.validation.Valid @RequestBody ImportRequest req) {
+        if ("mock_shopee".equals(req.platformServiceId()) || "mock_shopee_ads".equals(req.platformServiceId()))
+            shopeePolicy.requireAdmin(user);
         return importer.importFromPlatform(req.platformServiceId());
     }
 

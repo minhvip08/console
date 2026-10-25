@@ -45,6 +45,7 @@ public class ActionExecutor {
     private final AdapterRegistry adapters;
     private final ContextStore contextStore;
     private final ObjectMapper json;
+    private final com.simi.console.feature.shopee.ShopeeExecutionGuard shopee;
 
     @PersistenceContext
     private EntityManager em;
@@ -58,7 +59,7 @@ public class ActionExecutor {
                           ParameterResolver resolver,
                           AdapterRegistry adapters,
                           ContextStore contextStore,
-                          ObjectMapper json) {
+                          ObjectMapper json, com.simi.console.feature.shopee.ShopeeExecutionGuard shopee) {
         this.actionDefs = actionDefs;
         this.services = services;
         this.retryPolicies = retryPolicies;
@@ -69,6 +70,7 @@ public class ActionExecutor {
         this.adapters = adapters;
         this.contextStore = contextStore;
         this.json = json;
+        this.shopee = shopee;
     }
 
     @Transactional
@@ -77,6 +79,7 @@ public class ActionExecutor {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "action_definition not found: " + in.actionDefinitionId()));
 
+        shopee.checkAction(in.userId(), in.executionId(), actionDef);
         // 1. Resolve params + compute idempotency key
         ParameterResolver.Resolved resolved = resolver.resolve(actionDef, in.contextItems());
         String idempotencyKey = IdempotencyKey.compute(
@@ -113,7 +116,7 @@ public class ActionExecutor {
         AdapterRequest adapterReq = new AdapterRequest(
                 actionDef, service, retry,
                 resolved.path(), resolved.query(), resolved.headers(), resolved.body(),
-                idempotencyKey);
+                idempotencyKey, in.executionId(), in.userId());
 
         AdapterResult result = adapters.forType(actionDef.getAdapterType()).execute(adapterReq);
 
@@ -196,6 +199,14 @@ public class ActionExecutor {
             int stepOrder,
             Long triggerExecutionId,   // nullable for compensation actions
             Long actionDefinitionId,
-            List<ContextDataItem> contextItems
-    ) {}
+            List<ContextDataItem> contextItems,
+            String userId
+    ) {
+        public ExecuteInput(Long executionId, Long scenarioDefinitionId, String stepDefinitionId,
+                            int stepOrder, Long triggerExecutionId, Long actionDefinitionId,
+                            List<ContextDataItem> contextItems) {
+            this(executionId, scenarioDefinitionId, stepDefinitionId, stepOrder, triggerExecutionId,
+                    actionDefinitionId, contextItems, null);
+        }
+    }
 }

@@ -45,6 +45,7 @@ class ActionExecutorTest {
     @Mock AdapterRegistry adapters;
     @Mock ServiceAdapter mockAdapter;
     @Mock ContextStore contextStore;
+    @Mock com.simi.console.feature.shopee.ShopeeExecutionGuard shopee;
     // ObjectMapper là concrete class dùng thật — @Spy để @InjectMocks inject đúng
     @Spy ObjectMapper objectMapper = new ObjectMapper();
 

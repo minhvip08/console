@@ -403,3 +403,14 @@ CREATE INDEX idx_reconcile_open   ON reconciliation_event(drift_type, detected_a
 | `action_definition.output` | Như trên |
 | `saga_compensation_log.context_snapshot` | Historical snapshot toàn bộ execution context tại một thời điểm |
 | `action_execution.response_snapshot` | Raw 3rd party response — structure khác nhau theo từng service |
+
+
+## 7. Shopee Mock Integration — Console-owned Models
+
+Migration `common/src/main/resources/db/migration/V7__shopee_mock_integration.sql` adds:
+
+- `shopee_source`: source kind, display metadata, enabled/deleted flags, synthetic Shop Account/authorization expiry, source user grants and optimistic version. No vendor tokens.
+- `shopee_connection`: FK to source, metadata, selected fixture types, initial date/lookback and inactive frequency preference; optional unique scenario FK and action FK, deleted flag and optimistic version. Execution mode is always manual.
+- `shopee_run`: execution PK/FK, connection FK and immutable configuration snapshot (kind/shop/types/date/lookback/frozen UTC run time). This is execution configuration, not a durable synchronization checkpoint or destination.
+
+Definitions and execution FKs are preserved by soft deletion. Types/grants are small JSON arrays read as whole values. See [mock integration guide](11-shopee-mock-integration.md) for lifecycle, access and release gates. These are local models, not vendor schemas.

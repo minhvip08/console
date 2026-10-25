@@ -72,3 +72,9 @@ logging:
     org.hibernate.SQL: ${SQL_LOG_LEVEL:WARN}
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-}] [%X{executionId:-}] %-5level %logger{36} - %msg%n"
+
+# Synthetic integration only. No live provider or scheduled-sync mode exists.
+shopee:
+  mock:
+    enabled: ${SHOPEE_MOCK_ENABLED:false}
+    admin-users: ${SHOPEE_MOCK_ADMIN_USERS:}

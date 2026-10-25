@@ -79,7 +79,19 @@ public class SwaggerImporter {
                 for (Map.Entry<PathItem.HttpMethod, Operation> op : item.readOperationsMap().entrySet()) {
                     ActionDefinition a = buildAction(service.getId(), path.getKey(), op.getKey().name(),
                             item, op.getValue());
-                    ActionDefinition saved = actions.save(a);
+                    ActionDefinition saved;
+                    if (com.simi.common.shopee.ShopeeMockPolicy.isMockService(meta.name())) {
+                        a.setAdapterType("mock");
+                        // Preserve referenced VAR_ULIDs on reimport. New fixture versions use a new operation/path.
+                        saved = actions.findByServiceId(service.getId()).stream()
+                                .filter(existing -> existing.getEndpoint().equals(a.getEndpoint())
+                                        && existing.getHttpMethod().equals(a.getHttpMethod()))
+                                .findFirst().orElseGet(() -> actions.save(a));
+                        if (!saved.getName().equals(a.getName()) || !"mock".equals(saved.getAdapterType()))
+                            throw new com.simi.common.shopee.ShopeeException(409, "Mock definition changed; use a new fixture version");
+                    } else {
+                        saved = actions.save(a);
+                    }
                     createdActionIds.add(saved.getId());
                 }
             }

@@ -20,11 +20,13 @@ class ScenarioController {
 
     private final ScenarioDefinitionRepository scenarios;
     private final PermissionService permissionService;
+    private final com.simi.console.feature.shopee.ShopeeExecutionGuard shopee;
 
     ScenarioController(ScenarioDefinitionRepository scenarios,
-                       PermissionService permissionService) {
+                       PermissionService permissionService, com.simi.console.feature.shopee.ShopeeExecutionGuard shopee) {
         this.scenarios = scenarios;
         this.permissionService = permissionService;
+        this.shopee = shopee;
     }
 
     @GetMapping
@@ -32,11 +34,12 @@ class ScenarioController {
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
         if (userId == null || userId.isBlank()) {
             // No user context — return all (Tầng 1 gateway should handle auth)
-            return scenarios.findAll().stream().map(ScenarioSummary::from).toList();
+            return scenarios.findAll().stream().filter(s -> shopee.visible(userId, s.getId())).map(ScenarioSummary::from).toList();
         }
         Set<String> allowed = permissionService.getAllowedScenarioIds(userId);
         return scenarios.findAll().stream()
                 .filter(s -> allowed.contains(String.valueOf(s.getId())))
+                .filter(s -> shopee.visible(userId, s.getId()))
                 .map(ScenarioSummary::from)
                 .toList();
     }

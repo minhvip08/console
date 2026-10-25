@@ -77,3 +77,8 @@ Check permission:
 Khi RoleStore update quyền của user:
 - RoleStore gửi webhook → Console API DEL `sc:user:{userId}:exec`
 - Hoặc dùng TTL ngắn để tự expire (eventual consistency)
+
+
+## Shopee Mock Integration
+
+See [mock integration guide](11-shopee-mock-integration.md). Mock enablement and Admin IDs are explicit configuration. Source user grants supplement current scenario permission, including for execution owners. Trusted gateway identity is mandatory on integration start/trigger/read/resume/result endpoints; a body userId cannot substitute at start. Checks occur before cached response or restored context access. Disabled/deleted/expired sources and deleted connections block subsequent requests. Generic Backoffice definition endpoints retain their upstream Admin protection requirement.

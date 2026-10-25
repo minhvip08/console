@@ -21,12 +21,18 @@ class MockPlatformApiClient implements PlatformApiClient {
             new PlatformService("platform_coupon", "coupon-service", "https://coupon.internal",
                     "Issue + delete coupons for campaigns"),
             new PlatformService("platform_payment", "payment-gateway", "https://payment.internal",
-                    "Charge + refund payments")
+                    "Charge + refund payments"),
+            new PlatformService("mock_shopee", "shopee-mock", "https://shopee-mock.invalid",
+                    "[MOCK ONLY] Synthetic sales preview; no vendor API"),
+            new PlatformService("mock_shopee_ads", "shopee-ads-mock", "https://shopee-ads-mock.invalid",
+                    "[MOCK ONLY] Synthetic advertising preview; no vendor API")
     );
 
     private static final Map<String, String> SWAGGER_RESOURCES = Map.of(
             "platform_coupon", "mock-platform/coupon-service.yaml",
-            "platform_payment", "mock-platform/payment-gateway.yaml"
+            "platform_payment", "mock-platform/payment-gateway.yaml",
+            "mock_shopee", "mock-platform/shopee-mock.yaml",
+            "mock_shopee_ads", "mock-platform/shopee-ads-mock.yaml"
     );
 
     @Override

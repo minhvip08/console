@@ -29,19 +29,21 @@ class ExecutionController {
     private final ContextStore contextStore;
     private final PermissionService permissionService;
     private final ObjectMapper json;
+    private final com.simi.console.feature.shopee.ShopeeExecutionGuard shopee;
 
     ExecutionController(ScenarioDefinitionRepository scenarios,
                         StepDefinitionRepository steps,
                         ScenarioExecutionRepository executions,
                         ContextStore contextStore,
                         PermissionService permissionService,
-                        ObjectMapper json) {
+                        ObjectMapper json, com.simi.console.feature.shopee.ShopeeExecutionGuard shopee) {
         this.scenarios = scenarios;
         this.steps = steps;
         this.executions = executions;
         this.contextStore = contextStore;
         this.permissionService = permissionService;
         this.json = json;
+        this.shopee = shopee;
     }
 
     /** POST /api/executions {scenarioId, userId} → start scenario (docs/03 §Flow 1). */
@@ -51,6 +53,7 @@ class ExecutionController {
     public ExecutionDto start(
             @RequestHeader(value = "X-User-Id", required = false) String headerUserId,
             @Valid @RequestBody StartRequest req) {
+        shopee.checkScenario(headerUserId, req.scenarioId());
         String userId = headerUserId != null ? headerUserId : req.userId();
 
         ScenarioDefinition def = scenarios.findById(req.scenarioId()).orElseThrow(() ->
@@ -75,6 +78,7 @@ class ExecutionController {
         exec.setContext(emptyContext);
         exec.setCreatedBy(userId);
         executions.save(exec);
+        shopee.snapshot(headerUserId, exec);
 
         return ExecutionDto.from(exec, def, stepList);
     }
@@ -84,6 +88,7 @@ class ExecutionController {
     public ExecutionDto get(
             @PathVariable Long id,
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
+        shopee.checkExecution(userId, id);
         // RBAC: check execution permission (docs/09)
         if (userId != null && !userId.isBlank()) {
             permissionService.checkExecutionPermission(userId, id);
@@ -104,6 +109,7 @@ class ExecutionController {
     public ExecutionDto resume(
             @PathVariable Long id,
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
+        shopee.checkExecution(userId, id);
         // RBAC: check execution permission (docs/09)
         if (userId != null && !userId.isBlank()) {
             permissionService.checkExecutionPermission(userId, id);

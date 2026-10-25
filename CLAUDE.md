@@ -139,8 +139,8 @@ context_snapshot JSONB,   -- variable values tại thời điểm action chạy
 exec:{execId}:{sourceType}:{srcId}:{varId}     ← C, String ContextDataItem JSON  (execId = numeric Long)
 index:step:{execId}                            ← A, ZSET (score=stepOrder)
 group:{execId}:var:{varId}                     ← B, Set of C keys
-dedup:{requestId}             EX 60            ← Tầng 2
-result:{requestId}            EX 300           ← cached response
+dedup:{execId}:{triggerId}:{requestId}             EX 60            ← Tầng 2
+result:{execId}:{triggerId}:{requestId}            EX 300           ← cached response
 sc:user:{userId}:exec         EX 300           ← RBAC cache (members = String.valueOf(Long id))
 ```
 
@@ -225,3 +225,8 @@ Xem [plan.md](plan.md) — phased roadmap, mỗi phase có acceptance criteria.
 - ❌ Đừng commit JSONB cho `step_trigger` config — đã normalize sang table.
 - ❌ Đừng để `TIMEOUT` rớt vào Saga path — chỉ `FAILED` mới trigger Saga.
 - ❌ Đừng dùng Redis cluster mode khi chưa setup hash tag cho 3-key model — Lua script cần cùng slot.
+
+
+## Shopee / Shopee Ads Mock Integration
+
+`docs/11-shopee-mock-integration.md` documents opt-in mock-only configuration, source/account grants, Platform fixture import and manual previews. There is no live provider or scheduled-sync mode. Backoffice and Console explicitly register a Jackson 2 mapper/MVC converter to preserve existing definition/context JsonNode and Java time serialization under Boot 4; a Jackson migration is separate work.

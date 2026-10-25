@@ -18,8 +18,10 @@ class MockAdapter implements ServiceAdapter {
 
     private final ObjectMapper json;
 
-    MockAdapter(ObjectMapper json) {
+    private final com.simi.console.feature.shopee.ShopeeMockPreview shopee;
+    MockAdapter(ObjectMapper json, com.simi.console.feature.shopee.ShopeeMockPreview shopee) {
         this.json = json;
+        this.shopee = shopee;
     }
 
     @Override
@@ -29,6 +31,8 @@ class MockAdapter implements ServiceAdapter {
 
     @Override
     public AdapterResult execute(AdapterRequest req) {
+        if (com.simi.common.shopee.ShopeeMockPolicy.isMockService(req.service().getName()))
+            return shopee.execute(req);
         long t0 = System.currentTimeMillis();
         ObjectNode body = json.createObjectNode();
         JsonNode output = req.action().getOutput();
