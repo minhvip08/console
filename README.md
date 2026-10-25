@@ -4,6 +4,8 @@ Integrated console cho Nexon Game Ops — chạy multi-step scenarios qua một 
 
 📖 **Đọc trước:** [CLAUDE.md](CLAUDE.md) (project guide) — [plan.md](plan.md) (implementation roadmap) — [docs/](docs/) (canonical design)
 
+📘 **Developer guide:** [Setup, configuration, API usage, testing, and troubleshooting](docs/developer-guide.md).
+
 ---
 
 ## Repo Layout
