@@ -140,7 +140,7 @@ The two APIs share some paths but serve different purposes. Use port 8081 to man
 
 Starting an execution requires an existing scenario with at least one step; an empty scenario returns HTTP 400. Define the scenario, steps, triggers, and actions in backoffice before using the execution endpoints. The DTOs alongside the backoffice controllers describe their request shapes.
 
-Trigger requests require a nonblank `X-Request-Id` header or `requestId` body field. The header takes precedence. Reuse the request ID when retrying the same logical request. Inputs are a map of variable IDs to values.
+Trigger requests require a nonblank `X-Request-Id` header or `requestId` body field. The header takes precedence whenever it is present: a blank header returns HTTP 400 without falling back to the body field. Reuse the request ID when retrying the same logical request. Inputs are a map of variable IDs to values.
 
 Inspect the response body as well as HTTP status: cached trigger results return 200, requests already in progress return 202, and action timeouts also return 202. A response can contain failed actions even when its HTTP status is 200. Resume returns 409 for executions already marked `COMPLETED` or `COMPENSATED`.
 
