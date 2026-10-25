@@ -1,0 +1,31 @@
+openapi: 3.0.3
+info:
+  title: Synthetic SHOPEE_ADS preview (Console-owned; NOT a vendor API)
+  version: 1.0.0
+paths:
+  /fixture/preview:
+    post:
+      operationId: mock_shopee_ads_preview_v1
+      description: Mock-only bounded fixture; no network, credentials, or scheduled sync.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                load_mode:
+                  type: string
+                  enum: [INITIAL, INCREMENTAL]
+                outcome:
+                  type: string
+                  enum: [SUCCESS, FAILED, TIMEOUT]
+      responses:
+        '200':
+          description: Synthetic preview, not live source data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  preview:
+                    type: object

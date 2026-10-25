@@ -19,5 +19,7 @@ public record AdapterRequest(
         Map<String, Object> queryParams,
         Map<String, Object> headers,
         ObjectNode body,
-        String idempotencyKey
+        String idempotencyKey,
+        Long executionId,
+        String userId
 ) {}

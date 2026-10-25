@@ -376,8 +376,8 @@ flowchart TD
     end
 
     subgraph L2["Tầng 2 — Request Dedup (Redis)"]
-        T2{"SETNX dedup:{reqId}\nEX 60"}
-        T2b{"GET result:{reqId}"}
+        T2{"SETNX dedup:{execId}:{triggerId}:{reqId}\nEX 60"}
+        T2b{"GET result:{execId}:{triggerId}:{reqId}"}
     end
 
     subgraph L3["Tầng 3 — Trigger Lock (PostgreSQL)"]
@@ -663,10 +663,10 @@ mindmap
         Set - members=C keys
         TTL: execution lifetime
     Idempotency
-      dedup:{requestId}
+      dedup:{execId}:{triggerId}:{requestId}
         String - "1"
         TTL: 60s
-      result:{requestId}
+      result:{execId}:{triggerId}:{requestId}
         String - response JSON
         TTL: 300s
     RBAC
@@ -674,3 +674,23 @@ mindmap
         Set - allowed scenario IDs
         TTL: 5 phút
 ```
+
+
+## 13. Shopee / Shopee Ads — Mock-only Manual Preview
+
+```mermaid
+flowchart TD
+    A[Admin creates source and simulates Shop Account grant] --> B[Save manual connection and inactive frequency]
+    B --> C[Provision through mock catalog and Swagger import]
+    C --> D[Operator starts scenario with source and scenario grants]
+    D --> E[Freeze configuration in shopee_run]
+    E --> F[Trigger: recheck identity, grants, source and input allowlist]
+    F --> G{Cached result?}
+    G -->|Yes| H[Return sanitized summary]
+    G -->|No| I[ActionExecutor and MockAdapter generate bounded fixtures]
+    I --> J[Save output VARs through ContextStore]
+    J --> H
+    J --> K[Resume and preview read recheck current access]
+```
+
+Live provider access and durable scheduled sync remain separately blocked/gated; see [integration guide](11-shopee-mock-integration.md).

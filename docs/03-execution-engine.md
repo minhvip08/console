@@ -149,3 +149,8 @@ Async action config:
   }
 }
 ```
+
+
+## Shopee / Shopee Ads Mock Preview
+
+Provisioned connection scenarios use the existing `mock` adapter and frozen `shopee_run` configuration, with current source/scenario authorization checked before trigger cache lookup and action dispatch. No vendor API or scheduled execution is enabled. Trigger responses include the serialized summary on first completion as well as cached repeats; guarded stored preview outputs are available after resume. See [mock integration guide](11-shopee-mock-integration.md).

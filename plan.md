@@ -314,3 +314,23 @@ Phase 5 (Saga) song song với cuối Phase 4 nếu team đủ rộng.
 Phase 6 (RBAC) có thể delay đến Phase 7 nếu môi trường internal trust được.
 Phase 7 (CDC) cần infra setup (MSK Connect) → bắt đầu coi sớm dù implement sau.
 Phase 8 (Prod readiness) phải xong trước khi go-live.
+
+
+## Integration Extension — Shopee + Shopee Ads (Mock-first)
+
+**Mục tiêu:** Reuse Backoffice definitions/import and Console execution/context for bounded manual previews. See [11-shopee-mock-integration.md](docs/11-shopee-mock-integration.md).
+
+### Tasks
+- [x] Opt-in mock-only source/connection lifecycle with synthetic Shop Accounts, source grants, date/type validation and inactive frequency metadata.
+- [x] Synthetic Platform catalog/Swagger import with stable mock action variable bindings on reimport; provision normalized scenario/step/trigger definitions.
+- [x] Frozen run configuration, bounded fixture output through MockAdapter/ActionExecutor/ContextStore, source/scenario checks before cached/resumed results.
+- [x] Focused lifecycle/import/API/pipeline checks with mocked persistence and Redis.
+- [ ] PostgreSQL migration + Redis live integration verification (requires available infrastructure).
+- [ ] **Blocking live predecessor:** choose Elton-mediated versus direct Shopee access and verify API entitlement, auth contract, supported schemas/types and approved test shop permissions for sales and Ads. Do not infer vendor endpoints or exchange credential types.
+- [ ] Live bounded read-only retrieval and provider comparison after the contract/access gate.
+
+### Acceptance
+- [x] Both source kinds complete synthetic authorization, connection setup and manual fixture preview; invalid/disabled/expired/unauthorized paths are rejected and scheduling remains off.
+- [ ] Live readiness requires verified contracts, permissions, quotas, secret handling and operational evidence; mock completion is not live integration completion.
+
+**Separately gated:** durable scheduling, destination/checkpoint/upsert semantics, resumable pagination/rate limits, token lifecycle and sanitized durable persistence/logs need explicit roadmap approval. Existing v1 scheduling exclusions remain.

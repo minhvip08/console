@@ -29,3 +29,9 @@ management:
   endpoint:
     health:
       show-details: when_authorized
+
+# Synthetic integration only. No live provider or scheduled-sync mode exists.
+shopee:
+  mock:
+    enabled: ${SHOPEE_MOCK_ENABLED:false}
+    admin-users: ${SHOPEE_MOCK_ADMIN_USERS:}

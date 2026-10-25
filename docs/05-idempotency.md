@@ -64,14 +64,16 @@ User click
 Backend:
 
 ```
-1. SETNX "dedup:{requestId}" "1" EX 60    (Redis, TTL 60s)
+1. SETNX "dedup:{execId}:{triggerId}:{requestId}" "1" EX 60    (Redis, TTL 60s)
    → OK (key chưa tồn tại):  first request → proceed
    → FAIL (key tồn tại):     duplicate < 60s → 409
 
-2. GET "result:{requestId}"               (Redis)
+2. GET "result:{execId}:{triggerId}:{requestId}"               (Redis)
    → có result: 200 với cached response
    → không có:  202 { status: "processing" }
 ```
+
+Request/result Redis keys include execution and trigger IDs so a reused request ID cannot return another execution’s summary. Cached envelopes retain the trigger status and serialized action summary, including FAILED/TIMEOUT results.
 
 **ULID vs UUID:** ULID có timestamp prefix → sortable, dễ debug.
 
@@ -150,7 +152,7 @@ WHERE idempotency_key = ?
     X-Request-Id: req_01JWXYZ
 
 [Console API]
-  Tầng 2: SETNX "dedup:req_01JWXYZ" EX 60
+  Tầng 2: SETNX "dedup:{execId}:{triggerId}:req_01JWXYZ" EX 60
     → fail: 409 (double-click)
     → ok: proceed
 
@@ -170,7 +172,7 @@ WHERE idempotency_key = ?
 [Response path]
   action OK → response_snapshot saved
   trigger_execution → COMPLETED
-  SET "result:req_01JWXYZ" = { coupon_id: "cpn_01JW..." } EX 300
+  SET "result:{execId}:{triggerId}:req_01JWXYZ" = { coupon_id: "cpn_01JW..." } EX 300
   return 200
 
 [Browser]
@@ -186,7 +188,7 @@ WHERE idempotency_key = ?
 Tầng │ Where      │ Key                       │ TTL      │ Chặn case
 ─────┼────────────┼───────────────────────────┼──────────┼──────────────────────────
 1    │ Frontend   │ button state in context   │ session  │ double-click, UI re-render
-2    │ Redis      │ "dedup:{requestId}"       │ 60s      │ network retry < 60s
+2    │ Redis      │ "dedup:{execId}:{triggerId}:{requestId}"       │ 60s      │ network retry < 60s
 3    │ PostgreSQL │ UNIQUE(execution, trigger)│ forever  │ concurrent requests, race
 4    │ PostgreSQL │ SHA256(exec+action+params)│ forever  │ cross-session, same params
 ```

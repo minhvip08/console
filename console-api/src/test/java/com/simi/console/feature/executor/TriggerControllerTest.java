@@ -32,6 +32,7 @@ class TriggerControllerTest {
 
     @Mock StepExecutor stepExecutor;
     @Mock PermissionService permissionService;
+    @Mock com.simi.console.feature.shopee.ShopeeExecutionGuard shopee;
 
     private MockMvc mockMvc;
     private final ObjectMapper json = new ObjectMapper();
@@ -39,8 +40,24 @@ class TriggerControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new TriggerController(stepExecutor, permissionService))
+                .standaloneSetup(new TriggerController(stepExecutor, permissionService, shopee))
                 .build();
+    }
+
+    @Test
+    void deniedShopeeAccessCannotReachCachedResult() throws Exception {
+        org.mockito.Mockito.doThrow(new com.simi.common.shopee.ShopeeException(403, "Source access denied"))
+                .when(shopee).checkTrigger(org.mockito.ArgumentMatchers.eq("revoked"),
+                        org.mockito.ArgumentMatchers.eq(100L), org.mockito.ArgumentMatchers.eq(1L),
+                        org.mockito.ArgumentMatchers.any());
+        MockMvc protectedMvc = MockMvcBuilders.standaloneSetup(new TriggerController(stepExecutor, permissionService, shopee))
+                .build();
+        // Standalone setup has no application advice; assert the guarded call propagates before execution.
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> protectedMvc.perform(post("/api/executions/100/trigger")
+                        .header("X-User-Id", "revoked").header("X-Request-Id", "cached")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"triggerId\":1}")))
+                .hasCauseInstanceOf(com.simi.common.shopee.ShopeeException.class);
+        org.mockito.Mockito.verifyNoInteractions(stepExecutor);
     }
 
     @Test
@@ -100,7 +117,8 @@ class TriggerControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.type").value("completed"))
                 .andExpect(jsonPath("$.triggerStatus").value("COMPLETED"))
-                .andExpect(jsonPath("$.actions[0].status").value("COMPLETED"));
+                .andExpect(jsonPath("$.actions[0].status").value("COMPLETED"))
+                .andExpect(jsonPath("$.summary").value("{}"));
     }
 
     @Test

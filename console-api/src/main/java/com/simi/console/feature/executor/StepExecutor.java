@@ -95,12 +95,18 @@ public class StepExecutor {
     public TriggerResult execute(TriggerInput in) {
         // ─── Tầng 2 — Request Dedup ───
         Boolean firstReq = redis.opsForValue()
-                .setIfAbsent("dedup:" + in.requestId(), "1", DEDUP_TTL);
+                .setIfAbsent("dedup:" + in.executionId() + ":" + in.triggerId() + ":" + in.requestId(), "1", DEDUP_TTL);
         if (Boolean.FALSE.equals(firstReq)) {
             // Same requestId trong 60s — check có cached result không
-            String cached = redis.opsForValue().get("result:" + in.requestId());
+            String cached = redis.opsForValue().get("result:" + in.executionId() + ":" + in.triggerId() + ":" + in.requestId());
             if (cached != null) {
-                return TriggerResult.fromCache(cached);
+                try {
+                    var envelope = json.readTree(cached);
+                    return TriggerResult.fromCache(TriggerExecutionStatus.valueOf(envelope.path("triggerStatus").asText()),
+                            envelope.path("summary").asText());
+                } catch (JsonProcessingException invalidCache) {
+                    throw new IllegalStateException("Invalid trigger result cache", invalidCache);
+                }
             }
             return TriggerResult.inFlight();
         }
@@ -210,7 +216,7 @@ public class StepExecutor {
                     step.getStepOrder(),
                     te.getId(),
                     sta.getActionDefinitionId(),
-                    context
+                    context, in.userId()
             );
             ActionExecution executed = actionExecutor.execute(input);
             results.add(executed);
@@ -236,7 +242,9 @@ public class StepExecutor {
 
         // Cache trigger result for Tầng 2 idempotent return
         String cacheValue = summarize(results);
-        redis.opsForValue().set("result:" + in.requestId(), cacheValue, RESULT_TTL);
+        String envelope = json.createObjectNode().put("triggerStatus", te.getStatus().name())
+                .put("summary", cacheValue).toString();
+        redis.opsForValue().set("result:" + in.executionId() + ":" + in.triggerId() + ":" + in.requestId(), envelope, RESULT_TTL);
 
         return new TriggerResult(te.getStatus(), results, false, false, cacheValue,
                 anyFailure ? failedStatus : null);
@@ -276,14 +284,11 @@ public class StepExecutor {
     private String summarize(List<ActionExecution> rows) {
         Map<String, Object> map = new LinkedHashMap<>();
         for (ActionExecution row : rows) {
-            map.put(String.valueOf(row.getActionDefinitionId()),
-                    Map.of(
-                            "status", row.getStatus().name(),
-                            "actionExecutionId", row.getId(),
-                            "response", row.getResponseSnapshot() == null
-                                    ? null
-                                    : row.getResponseSnapshot()
-                    ));
+            Map<String, Object> summary = new LinkedHashMap<>();
+            summary.put("status", row.getStatus().name());
+            summary.put("actionExecutionId", row.getId());
+            summary.put("response", row.getResponseSnapshot());
+            map.put(String.valueOf(row.getActionDefinitionId()), summary);
         }
         try {
             return json.writeValueAsString(map);
@@ -306,8 +311,13 @@ public class StepExecutor {
             Long executionId,
             Long triggerId,
             String requestId,
-            Map<String, Object> inputs  // {varId: value} từ UI widgets
-    ) {}
+            Map<String, Object> inputs,  // {varId: value} từ UI widgets
+            String userId
+    ) {
+        public TriggerInput(Long executionId, Long triggerId, String requestId, Map<String, Object> inputs) {
+            this(executionId, triggerId, requestId, inputs, null);
+        }
+    }
 
     public record TriggerResult(
             TriggerExecutionStatus status,
@@ -318,7 +328,10 @@ public class StepExecutor {
             ActionExecutionStatus failedActionStatus   // non-null when action loop broke
     ) {
         static TriggerResult fromCache(String summary) {
-            return new TriggerResult(TriggerExecutionStatus.COMPLETED, List.of(), true, false, summary, null);
+            return fromCache(TriggerExecutionStatus.COMPLETED, summary);
+        }
+        static TriggerResult fromCache(TriggerExecutionStatus status, String summary) {
+            return new TriggerResult(status, List.of(), true, false, summary, null);
         }
         static TriggerResult inFlight() {
             return new TriggerResult(TriggerExecutionStatus.RUNNING, List.of(), false, true, null, null);

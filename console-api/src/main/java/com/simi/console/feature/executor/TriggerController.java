@@ -31,11 +31,13 @@ class TriggerController {
 
     private final StepExecutor stepExecutor;
     private final PermissionService permissionService;
+    private final com.simi.console.feature.shopee.ShopeeExecutionGuard shopee;
 
     TriggerController(StepExecutor stepExecutor,
-                      PermissionService permissionService) {
+                      PermissionService permissionService, com.simi.console.feature.shopee.ShopeeExecutionGuard shopee) {
         this.stepExecutor = stepExecutor;
         this.permissionService = permissionService;
+        this.shopee = shopee;
     }
 
     @PostMapping
@@ -56,14 +58,16 @@ class TriggerController {
                     "X-Request-Id header or body.requestId required (Tầng 2 idempotency)"));
         }
 
+        shopee.checkTrigger(userId, executionId, req.triggerId(), req.inputs());
+
         StepExecutor.TriggerResult result = stepExecutor.execute(new StepExecutor.TriggerInput(
-                executionId, req.triggerId(), requestId, req.inputs()));
+                executionId, req.triggerId(), requestId, req.inputs(), userId));
 
         if (result.alreadyProcessing()) {
             return ResponseEntity.accepted().body(TriggerResponse.processing());
         }
         if (result.cached()) {
-            return ResponseEntity.ok(TriggerResponse.cached(result.summary()));
+            return ResponseEntity.ok(TriggerResponse.cached(result.summary(), result.status().name()));
         }
 
         HttpStatus status = anyTimeout(result.actionResults())
@@ -71,7 +75,7 @@ class TriggerController {
                 : HttpStatus.OK;
         return ResponseEntity.status(status).body(TriggerResponse.completed(
                 result.status().name(),
-                result.actionResults().stream().map(ActionSummary::from).toList()));
+                result.actionResults().stream().map(ActionSummary::from).toList(), result.summary()));
     }
 
     private static boolean anyTimeout(List<ActionExecution> rows) {
@@ -91,11 +95,11 @@ class TriggerController {
             String summary,
             String message
     ) {
-        static TriggerResponse completed(String triggerStatus, List<ActionSummary> actions) {
-            return new TriggerResponse("completed", triggerStatus, actions, null, null);
+        static TriggerResponse completed(String triggerStatus, List<ActionSummary> actions, String summary) {
+            return new TriggerResponse("completed", triggerStatus, actions, summary, null);
         }
-        static TriggerResponse cached(String summary) {
-            return new TriggerResponse("cached", "COMPLETED", List.of(), summary, null);
+        static TriggerResponse cached(String summary, String triggerStatus) {
+            return new TriggerResponse("cached", triggerStatus, List.of(), summary, null);
         }
         static TriggerResponse processing() {
             return new TriggerResponse("processing", "RUNNING", List.of(), null,
